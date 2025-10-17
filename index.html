@@ -41,7 +41,7 @@
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <div id="app-container" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-8xl">
+    <div id="app-container" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-3xl">
         <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
             
             <header class="mb-8 text-center">
@@ -131,7 +131,7 @@
             </div>
         </div>
         <footer class="text-center mt-6 text-sm text-gray-400">
-            <p>&copy; 2025 Created for SMKT (TERENGGANU).</p>
+            <p>&copy; 2024 Created for your convenience.</p>
         </footer>
     </div>
 
@@ -268,7 +268,6 @@
             },
 
             getCurrentDataFromForm() {
-                const salesDate = new Date(this.elements.salesDate.value);
                 const data = {
                     shopName: this.elements.shopName.value,
                     monthlyTarget: parseFloat(this.elements.monthlyTarget.value) || 0,
@@ -400,16 +399,17 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                         const [year, month, day] = dateKey.split('-').map(Number);
                         const selectedDate = new Date(year, month - 1, day);
 
-                        if (selectedDate.getDate() === 1) {
+                        if (day === 1) {
                             this.elements.upToDateSales.value = 0;
                         } else {
                             const yesterday = new Date(selectedDate);
-                            yesterday.setDate(yesterday.getDate() - 1);
+                            yesterday.setDate(selectedDate.getDate() - 1);
                             const yesterdayKey = this.formatDate(yesterday);
                             const yesterdayRef = doc(this.db, `artifacts/${this.appId}/public/data/salesReports/${yesterdayKey}`);
                             const yesterdaySnap = await getDoc(yesterdayRef);
                             
-                            if (yesterdaySnap.exists() && yesterday.getMonth() === selectedDate.getMonth() -1) {
+                            // DIBETULKAN: Logik semakan bulan yang lebih stabil
+                            if (yesterdaySnap.exists() && yesterday.getMonth() === selectedDate.getMonth()) {
                                 this.elements.upToDateSales.value = yesterdaySnap.data().newUpToDateSales || 0;
                             } else {
                                 this.elements.upToDateSales.value = 0;
@@ -468,8 +468,8 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
             updateHistoryDashboard() {
                 const [year, month] = this.elements.historyMonth.value.split('-').map(Number);
                 const filteredReports = this.allReports.filter(r => {
-                    const reportDate = new Date(r.dateKey);
-                    return reportDate.getFullYear() === year && reportDate.getMonth() + 1 === month;
+                    const [rYear, rMonth] = r.dateKey.split('-').map(Number);
+                    return rYear === year && rMonth === month;
                 });
 
                 this.renderHistoryTable(filteredReports);
@@ -506,19 +506,20 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                 
                 const cumulativeSalesData = new Array(daysInMonth).fill(null);
                 reports.forEach(report => {
-                    const day = new Date(report.dateKey).getDate();
-                    cumulativeSalesData[day] = report.newUpToDateSales;
+                    const day = new Date(report.dateKey).getUTCDate();
+                    cumulativeSalesData[day - 1] = report.newUpToDateSales;
                 });
                 
                 // Forward-fill null values
                 for (let i = 1; i < cumulativeSalesData.length; i++) {
-                    if (cumulativeSalesData[i] === null) {
+                    if (cumulativeSalesData[i] === null && cumulativeSalesData[i-1] !== null) {
                         cumulativeSalesData[i] = cumulativeSalesData[i - 1];
                     }
                 }
 
-                const target = parseFloat(this.elements.monthlyTarget.value) || 0;
-                const baseline = parseFloat(this.elements.baselineTarget.value) || 0;
+                const configData = reports.length > 0 ? reports[reports.length-1] : this.getCurrentDataFromForm();
+                const target = configData.monthlyTarget || 0;
+                const baseline = configData.baselineTarget || 0;
 
                 if (this.salesChartInstance) {
                     this.salesChartInstance.destroy();
