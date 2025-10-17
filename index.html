@@ -37,11 +37,22 @@
         }
         .modal { transition: opacity 0.3s ease; }
         .toast { transition: opacity 0.5s, transform 0.5s; }
+        .kpi-card {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #e2e8f0; /* Default border */
+            border-radius: 0.75rem;
+            padding: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        .kpi-card.blue { border-left-color: rgb(59, 130, 246); }
+        .kpi-card.orange { border-left-color: rgb(249, 115, 22); }
+        .kpi-card.red { border-left-color: rgb(220, 38, 38); }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <div id="app-container" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-8xl">
+    <div id="app-container" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-3xl">
         <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
             
             <header class="mb-8 text-center">
@@ -131,19 +142,43 @@
             </div>
         </div>
         <footer class="text-center mt-6 text-sm text-gray-400">
-            <p>&copy; 2024 Created for KTCC (TERENGGANU).</p>
+            <p>&copy; 2024 Created for your convenience.</p>
         </footer>
     </div>
 
     <!-- History Modal -->
     <div id="historyModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden opacity-0">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
             <div class="p-4 border-b flex justify-between items-center">
                 <h2 class="text-xl font-bold">Monthly Sales Dashboard</h2>
                 <input type="month" id="historyMonth" class="p-2 border rounded-lg">
                 <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
             </div>
             <div class="p-4 overflow-y-auto space-y-6">
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
+                    <div class="kpi-card">
+                        <p class="text-sm text-gray-500">Total Sales</p>
+                        <p id="kpi-total-sales" class="text-2xl font-bold text-blue-600">RM 0.00</p>
+                    </div>
+                    <div class="kpi-card">
+                        <p class="text-sm text-gray-500">Remaining to Baseline</p>
+                        <p id="kpi-remaining-baseline" class="text-2xl font-bold">RM 0.00</p>
+                    </div>
+                    <div class="kpi-card">
+                        <p class="text-sm text-gray-500">Remaining to Target</p>
+                        <p id="kpi-remaining-target" class="text-2xl font-bold">RM 0.00</p>
+                    </div>
+                    <div class="kpi-card">
+                        <p class="text-sm text-gray-500">Average Daily Sales</p>
+                        <p id="kpi-avg-daily" class="text-2xl font-bold text-gray-700">RM 0.00</p>
+                    </div>
+                    <div class="kpi-card">
+                        <p class="text-sm text-gray-500">Required Daily Average</p>
+                        <p id="kpi-required-avg" class="text-2xl font-bold text-indigo-600">RM 0.00</p>
+                    </div>
+                </div>
+
                 <div>
                     <h3 class="text-lg font-semibold mb-2">Sales Flow</h3>
                     <div class="bg-gray-50 p-2 rounded-lg">
@@ -160,14 +195,12 @@
                                     <th class="p-2 text-right">Core (RM)</th>
                                     <th class="p-2 text-right">Acc. (RM)</th>
                                     <th class="p-2 text-right">War. (RM)</th>
-                                    <th class="p-2 text-right">TradeIn(RM)</th>
+                                    <th class="p-2 text-right">TradeIn (RM)</th>
                                     <th class="p-2 text-right font-bold">Daily (RM)</th>
                                     <th class="p-2 text-right font-bold">Up to Date (RM)</th>
                                 </tr>
                             </thead>
-                            <tbody id="historyTableBody">
-                                <!-- Data sejarah akan dimasukkan di sini -->
-                            </tbody>
+                            <tbody id="historyTableBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -221,6 +254,11 @@
                 tradeInItems: document.getElementById('tradeInItems'),
                 currentDay: document.getElementById('currentDay'),
                 totalDays: document.getElementById('totalDays'),
+                kpiTotalSales: document.getElementById('kpi-total-sales'),
+                kpiRemainingBaseline: document.getElementById('kpi-remaining-baseline'),
+                kpiRemainingTarget: document.getElementById('kpi-remaining-target'),
+                kpiAvgDaily: document.getElementById('kpi-avg-daily'),
+                kpiRequiredAvg: document.getElementById('kpi-required-avg'),
             },
 
             async initFirebase() {
@@ -315,7 +353,6 @@
 
             generateReport(data) {
                 const [year, month, day] = data.dateKey.split('-').map(Number);
-
                 const currentDay = day;
                 const totalDays = new Date(year, month, 0).getDate();
                 
@@ -397,18 +434,17 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                     } else {
                         this.resetDailyInputs();
                         const [year, month, day] = dateKey.split('-').map(Number);
-                        const selectedDate = new Date(year, month - 1, day);
-
+                        
                         if (day === 1) {
                             this.elements.upToDateSales.value = 0;
                         } else {
+                            const selectedDate = new Date(year, month - 1, day);
                             const yesterday = new Date(selectedDate);
                             yesterday.setDate(selectedDate.getDate() - 1);
                             const yesterdayKey = this.formatDate(yesterday);
                             const yesterdayRef = doc(this.db, `artifacts/${this.appId}/public/data/salesReports/${yesterdayKey}`);
                             const yesterdaySnap = await getDoc(yesterdayRef);
                             
-                            // DIBETULKAN: Logik semakan bulan yang lebih stabil
                             if (yesterdaySnap.exists() && yesterday.getMonth() === selectedDate.getMonth()) {
                                 this.elements.upToDateSales.value = yesterdaySnap.data().newUpToDateSales || 0;
                             } else {
@@ -474,6 +510,63 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
 
                 this.renderHistoryTable(filteredReports);
                 this.renderHistoryChart(filteredReports, year, month);
+                this.updateKpiCards(filteredReports, year, month);
+            },
+
+            updateKpiCards(reports, year, month) {
+                const kpiBaselineCard = this.elements.kpiRemainingBaseline.parentElement;
+                const kpiTargetCard = this.elements.kpiRemainingTarget.parentElement;
+                
+                [kpiBaselineCard, kpiTargetCard].forEach(card => card.classList.remove('blue', 'orange', 'red'));
+
+                if(reports.length === 0) {
+                    this.elements.kpiTotalSales.textContent = this.formatCurrency(0, true);
+                    this.elements.kpiRemainingBaseline.textContent = this.formatCurrency(parseFloat(this.elements.baselineTarget.value) || 0, true);
+                    this.elements.kpiRemainingTarget.textContent = this.formatCurrency(parseFloat(this.elements.monthlyTarget.value) || 0, true);
+                    this.elements.kpiAvgDaily.textContent = this.formatCurrency(0, true);
+                    this.elements.kpiRequiredAvg.textContent = this.formatCurrency(0, true);
+                    kpiBaselineCard.classList.add('red');
+                    kpiTargetCard.classList.add('red');
+                    return;
+                }
+
+                const latestReport = reports[reports.length - 1];
+                const totalSales = latestReport.newUpToDateSales || 0;
+                const target = latestReport.monthlyTarget || 0;
+                const baseline = latestReport.baselineTarget || 0;
+
+                const remainingToTarget = Math.max(0, target - totalSales);
+                const remainingToBaseline = Math.max(0, baseline - totalSales);
+                
+                const totalDailySales = reports.reduce((sum, r) => sum + ((r.coreProductSales || 0) + (r.accessoriesSales || 0) + (r.warrantySales || 0) + (r.tradeInSales || 0)), 0);
+                const averageDailySales = reports.length > 0 ? totalDailySales / reports.length : 0;
+                
+                // --- Logic for Required Daily Average ---
+                const totalDaysInMonth = new Date(year, month, 0).getDate();
+                const lastDayRecorded = new Date(latestReport.dateKey).getUTCDate();
+                const daysRemaining = totalDaysInMonth - lastDayRecorded;
+                let requiredDailyAverage = 0;
+                if (remainingToTarget > 0 && daysRemaining > 0) {
+                    requiredDailyAverage = remainingToTarget / daysRemaining;
+                }
+
+                this.elements.kpiTotalSales.textContent = this.formatCurrency(totalSales, true);
+                this.elements.kpiRemainingBaseline.textContent = this.formatCurrency(remainingToBaseline, true);
+                this.elements.kpiRemainingTarget.textContent = this.formatCurrency(remainingToTarget, true);
+                this.elements.kpiAvgDaily.textContent = this.formatCurrency(averageDailySales, true);
+                this.elements.kpiRequiredAvg.textContent = this.formatCurrency(requiredDailyAverage, true);
+                
+                if (baseline > 0) {
+                    if (totalSales >= baseline) kpiBaselineCard.classList.add('blue');
+                    else if (totalSales >= baseline * 0.8) kpiBaselineCard.classList.add('orange');
+                    else kpiBaselineCard.classList.add('red');
+                }
+
+                if (target > 0) {
+                    if (totalSales >= target) kpiTargetCard.classList.add('blue');
+                    else if (totalSales >= target * 0.8) kpiTargetCard.classList.add('orange');
+                    else kpiTargetCard.classList.add('red');
+                }
             },
             
             renderHistoryTable(reports) {
@@ -510,7 +603,6 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                     cumulativeSalesData[day - 1] = report.newUpToDateSales;
                 });
                 
-                // Forward-fill null values
                 for (let i = 1; i < cumulativeSalesData.length; i++) {
                     if (cumulativeSalesData[i] === null && cumulativeSalesData[i-1] !== null) {
                         cumulativeSalesData[i] = cumulativeSalesData[i - 1];
@@ -524,8 +616,13 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                 if (this.salesChartInstance) {
                     this.salesChartInstance.destroy();
                 }
+                const ctx = this.elements.salesChart.getContext('2d');
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+                gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
 
-                this.salesChartInstance = new Chart(this.elements.salesChart, {
+
+                this.salesChartInstance = new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
@@ -534,10 +631,16 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                                 label: 'Cumulative Sales',
                                 data: cumulativeSalesData,
                                 borderColor: 'rgb(59, 130, 246)',
-                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                backgroundColor: gradient,
                                 fill: true,
-                                tension: 0.1,
-                                spanGaps: true
+                                tension: 0.4,
+                                pointBackgroundColor: 'rgb(59, 130, 246)',
+                                pointBorderColor: '#fff',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: 'rgb(59, 130, 246)',
+                                borderWidth: 2.5,
+                                pointRadius: 3,
+                                pointHoverRadius: 6,
                             },
                             {
                                 label: 'Target',
@@ -545,7 +648,8 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                                 borderColor: 'rgb(22, 163, 74)',
                                 borderDash: [5, 5],
                                 pointRadius: 0,
-                                fill: false
+                                fill: false,
+                                borderWidth: 2,
                             },
                              {
                                 label: 'Baseline',
@@ -553,19 +657,28 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                                 borderColor: 'rgb(234, 179, 8)',
                                 borderDash: [5, 5],
                                 pointRadius: 0,
-                                fill: false
+                                fill: false,
+                                borderWidth: 2,
                             }
                         ]
                     },
                     options: {
                         responsive: true,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                ticks: {
-                                    callback: (value) => `RM ${this.formatCurrency(value)}`
-                                }
-                            }
+                                grid: { color: '#e5e7eb' },
+                                ticks: { callback: (value) => `RM ${this.formatCurrency(value)}` }
+                            },
+                            x: { grid: { display: false } }
+                        },
+                        plugins: {
+                            legend: { position: 'top' },
+                            tooltip: { callbacks: { label: (context) => `${context.dataset.label}: RM ${this.formatCurrency(context.parsed.y)}` } }
                         }
                     }
                 });
@@ -593,8 +706,9 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                 return `${year}-${month}-${day}`;
             },
 
-            formatCurrency(value) {
-                return (value || 0).toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            formatCurrency(value, withPrefix = false) {
+                const formatted = (value || 0).toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return withPrefix ? `RM ${formatted}` : formatted;
             },
 
             async init() {
