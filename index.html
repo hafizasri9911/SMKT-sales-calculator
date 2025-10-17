@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .input-group { margin-bottom: 1rem; }
@@ -40,7 +41,7 @@
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <div id="app-container" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-8xl">
+    <div id="app-container" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-3xl">
         <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
             
             <header class="mb-8 text-center">
@@ -64,6 +65,11 @@
                     <div class="input-group">
                         <label for="monthlyTarget">Monthly Sales Target (RM)</label>
                         <input type="number" id="monthlyTarget" placeholder="E.g., 492000.00" step="0.01">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="baselineTarget">Baseline (RM)</label>
+                        <input type="number" id="baselineTarget" placeholder="E.g., 200000.00" step="0.01">
                     </div>
 
                     <div class="input-group">
@@ -106,8 +112,8 @@
                         </div>
                     </div>
                     
-                    <button id="calculateBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md">
-                        Calculate & Save Report
+                    <button id="saveBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md">
+                        Save Report
                     </button>
                     <button id="historyBtn" class="w-full bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-300 shadow-md">
                         View History
@@ -116,7 +122,7 @@
                 
                 <!-- Output Section -->
                 <div>
-                    <label class="block mb-2 font-medium text-gray-700">Generated Report</label>
+                    <label class="block mb-2 font-medium text-gray-700">Generated Report (Live Preview)</label>
                     <div id="output" class="generated-text">The report will be displayed here...</div>
                     <button id="copyBtn" class="mt-4 w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-300 shadow-md">
                         Copy Text
@@ -125,32 +131,45 @@
             </div>
         </div>
         <footer class="text-center mt-6 text-sm text-gray-400">
-            <p>&copy; 2024 Created for SMKT (Terengganu).</p>
+            <p>&copy; 2024 Created for your convenience.</p>
         </footer>
     </div>
 
     <!-- History Modal -->
     <div id="historyModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden opacity-0">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
             <div class="p-4 border-b flex justify-between items-center">
-                <h2 class="text-xl font-bold">Sales History</h2>
+                <h2 class="text-xl font-bold">Monthly Sales Dashboard</h2>
+                <input type="month" id="historyMonth" class="p-2 border rounded-lg">
                 <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
             </div>
-            <div class="p-4 overflow-y-auto">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-gray-100">
-                            <tr>
-                                <th class="p-2">Date</th>
-                                <th class="p-2">Daily Sales (RM)</th>
-                                <th class="p-2">Up to Date Sales (RM)</th>
-                                <th class="p-2">Achievement (%)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="historyTableBody">
-                            <!-- Data sejarah akan dimasukkan di sini -->
-                        </tbody>
-                    </table>
+            <div class="p-4 overflow-y-auto space-y-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Sales Flow</h3>
+                    <div class="bg-gray-50 p-2 rounded-lg">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Daily Breakdown</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="p-2">Date</th>
+                                    <th class="p-2 text-right">Core (RM)</th>
+                                    <th class="p-2 text-right">Acc. (RM)</th>
+                                    <th class="p-2 text-right">War. (RM)</th>
+                                    <th class="p-2 text-right">TradeIn(RM)</th>
+                                    <th class="p-2 text-right font-bold">Daily (RM)</th>
+                                    <th class="p-2 text-right font-bold">Up to Date (RM)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <!-- Data sejarah akan dimasukkan di sini -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -170,24 +189,27 @@
         const SalesApp = {
             db: null,
             auth: null,
-            appId: 'sales-calculator-app', // ID ini MESTI sepadan dengan ID dalam Firestore Rules anda
+            appId: 'sales-calculator-app',
+            allReports: [],
+            salesChartInstance: null,
 
-            // Rujukan kepada elemen-elemen DOM
             elements: {
                 container: document.getElementById('app-container'),
                 salesDate: document.getElementById('salesDate'),
-                calculateBtn: document.getElementById('calculateBtn'),
+                saveBtn: document.getElementById('saveBtn'),
                 copyBtn: document.getElementById('copyBtn'),
                 historyBtn: document.getElementById('historyBtn'),
                 historyModal: document.getElementById('historyModal'),
                 closeModalBtn: document.getElementById('closeModalBtn'),
+                historyMonth: document.getElementById('historyMonth'),
+                salesChart: document.getElementById('salesChart'),
                 historyTableBody: document.getElementById('historyTableBody'),
                 toast: document.getElementById('toast'),
                 toastMessage: document.getElementById('toast-message'),
                 output: document.getElementById('output'),
-                // Tambah semua input fields di sini untuk rujukan mudah
                 shopName: document.getElementById('shopName'),
                 monthlyTarget: document.getElementById('monthlyTarget'),
+                baselineTarget: document.getElementById('baselineTarget'),
                 upToDateSales: document.getElementById('upToDateSales'),
                 coreProduct: document.getElementById('coreProduct'),
                 coreProductItems: document.getElementById('coreProductItems'),
@@ -201,7 +223,6 @@
                 totalDays: document.getElementById('totalDays'),
             },
 
-            // Fungsi untuk memulakan sambungan Firebase
             async initFirebase() {
                 try {
                     const firebaseConfig = {
@@ -220,33 +241,38 @@
                     return true;
                 } catch (error) {
                     console.error("Firebase initialization failed:", error);
-                    this.showError(`Database Connection Error! Could not initialize the database. Please check your Firebase configuration and security rules. Details: ${error.message}`);
+                    this.showError(`Database Connection Error! Details: ${error.message}`);
                     return false;
                 }
             },
 
-            // Mengikat semua event listeners
             bindEvents() {
                 this.elements.salesDate.addEventListener('change', () => {
                     this.updateDateFields();
                     this.loadDataForDate(this.elements.salesDate.value);
                 });
-                this.elements.calculateBtn.addEventListener('click', () => this.calculateAndSave());
+                
+                const inputsToTrack = ['shopName', 'monthlyTarget', 'baselineTarget', 'coreProduct', 'coreProductItems', 'accessories', 'accessoriesItems', 'warranty', 'warrantyItems', 'tradeIn', 'tradeInItems'];
+                inputsToTrack.forEach(id => {
+                    this.elements[id]?.addEventListener('input', () => this.liveUpdateReport());
+                });
+
+                this.elements.saveBtn.addEventListener('click', () => this.saveReport());
                 this.elements.copyBtn.addEventListener('click', () => this.copyReport());
                 this.elements.historyBtn.addEventListener('click', () => this.showHistory());
                 this.elements.closeModalBtn.addEventListener('click', () => this.hideModal());
                 this.elements.historyModal.addEventListener('click', (e) => {
                     if (e.target === this.elements.historyModal) this.hideModal();
                 });
+                this.elements.historyMonth.addEventListener('change', () => this.updateHistoryDashboard());
             },
 
-            // --- Fungsi Utama ---
-
-            async calculateAndSave() {
+            getCurrentDataFromForm() {
                 const salesDate = new Date(this.elements.salesDate.value);
                 const data = {
                     shopName: this.elements.shopName.value,
                     monthlyTarget: parseFloat(this.elements.monthlyTarget.value) || 0,
+                    baselineTarget: parseFloat(this.elements.baselineTarget.value) || 0,
                     previousUpToDateSales: parseFloat(this.elements.upToDateSales.value) || 0,
                     coreProductSales: parseFloat(this.elements.coreProduct.value) || 0,
                     accessoriesSales: parseFloat(this.elements.accessories.value) || 0,
@@ -256,21 +282,30 @@
                     accessoriesItems: this.elements.accessoriesItems.value.trim(),
                     warrantyItems: this.elements.warrantyItems.value.trim(),
                     tradeInItems: this.elements.tradeInItems.value.trim(),
-                    dateKey: this.formatDate(salesDate)
+                    dateKey: this.elements.salesDate.value
                 };
-
                 const dailySales = data.coreProductSales + data.accessoriesSales + data.warrantySales + data.tradeInSales;
                 data.newUpToDateSales = data.previousUpToDateSales + dailySales;
-                
+                return data;
+            },
+            
+            liveUpdateReport() {
+                const data = this.getCurrentDataFromForm();
                 this.generateReport(data);
-                
-                // Simpan ke Firestore
+            },
+
+            async saveReport() {
+                const data = this.getCurrentDataFromForm();
                 try {
                     const reportRef = doc(this.db, `artifacts/${this.appId}/public/data/salesReports/${data.dateKey}`);
                     await setDoc(reportRef, data);
 
                     const configRef = doc(this.db, `artifacts/${this.appId}/public/data/salesConfig/config`);
-                    await setDoc(configRef, { shopName: data.shopName, monthlyTarget: data.monthlyTarget }, { merge: true });
+                    await setDoc(configRef, { 
+                        shopName: data.shopName, 
+                        monthlyTarget: data.monthlyTarget,
+                        baselineTarget: data.baselineTarget
+                    }, { merge: true });
 
                     this.showToast("Report saved successfully!");
                 } catch (error) {
@@ -280,19 +315,24 @@
             },
 
             generateReport(data) {
-                const salesDate = new Date(data.dateKey);
-                // Tambah 1 hari untuk betulkan zon masa
-                salesDate.setDate(salesDate.getDate() + 1);
+                const [year, month, day] = data.dateKey.split('-').map(Number);
 
-                const currentDay = salesDate.getDate();
-                const totalDays = new Date(salesDate.getFullYear(), salesDate.getMonth() + 1, 0).getDate();
+                const currentDay = day;
+                const totalDays = new Date(year, month, 0).getDate();
                 
                 const dailySales = data.coreProductSales + data.accessoriesSales + data.warrantySales + data.tradeInSales;
                 const upToDatePercent = data.monthlyTarget > 0 ? (data.newUpToDateSales / data.monthlyTarget) * 100 : 0;
                 const estimatedClosing = currentDay > 0 ? (data.newUpToDateSales / currentDay) * totalDays : 0;
                 const estimatedClosingPercent = data.monthlyTarget > 0 ? (estimatedClosing / data.monthlyTarget) * 100 : 0;
                 
-                const formattedDisplayDate = `${String(salesDate.getDate()).padStart(2, '0')}/${String(salesDate.getMonth() + 1).padStart(2, '0')}/${salesDate.getFullYear()}`;
+                const formattedDisplayDate = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+
+                let indicator = '';
+                if (data.monthlyTarget > 0 && data.newUpToDateSales >= data.monthlyTarget) {
+                    indicator = 'Target Achieved! 🎉';
+                } else if (data.baselineTarget > 0 && data.newUpToDateSales >= data.baselineTarget) {
+                    indicator = 'Baseline Achieved! 👍';
+                }
 
                 const breakdownParts = [];
                 const categories = [
@@ -303,7 +343,7 @@
                 ];
 
                 categories.forEach(cat => {
-                    if (cat.sales > 0) {
+                    if (cat.sales > 0 || (cat.items && cat.items.length > 0)) {
                         let part = `${cat.title} : RM ${this.formatCurrency(cat.sales)}`;
                         if (cat.items) {
                             part += `\n${cat.items.split('\n').map(item => item.trim()).join('\n')}`;
@@ -313,6 +353,7 @@
                 });
                 
                 const salesBreakdown = breakdownParts.join('\n\n');
+                const indicatorLine = indicator ? `${indicator}\n` : '';
 
                 const outputText = 
 `${data.shopName.toUpperCase()} ${formattedDisplayDate} Sales : RM ${this.formatCurrency(dailySales)}
@@ -321,7 +362,7 @@ ${salesBreakdown}
 
 Target : RM ${this.formatCurrency(data.monthlyTarget)}
 Up to Date : RM ${this.formatCurrency(data.newUpToDateSales)} (${upToDatePercent.toFixed(0)}%)
-Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClosingPercent.toFixed(0)}%)`;
+${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClosingPercent.toFixed(0)}%)`;
 
                 this.elements.output.textContent = outputText;
             },
@@ -334,6 +375,7 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                         const config = configSnap.data();
                         this.elements.shopName.value = config.shopName || 'SMKT';
                         this.elements.monthlyTarget.value = config.monthlyTarget || '';
+                        this.elements.baselineTarget.value = config.baselineTarget || '';
                     }
 
                     const reportRef = doc(this.db, `artifacts/${this.appId}/public/data/salesReports/${dateKey}`);
@@ -341,7 +383,9 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
 
                     if (reportSnap.exists()) {
                         const data = reportSnap.data();
-                        // DIBETULKAN: Peta data secara eksplisit untuk elak ralat nama
+                        this.elements.shopName.value = data.shopName || this.elements.shopName.value;
+                        this.elements.monthlyTarget.value = data.monthlyTarget || this.elements.monthlyTarget.value;
+                        this.elements.baselineTarget.value = data.baselineTarget || this.elements.baselineTarget.value;
                         this.elements.upToDateSales.value = data.previousUpToDateSales || 0;
                         this.elements.coreProduct.value = data.coreProductSales || '';
                         this.elements.coreProductItems.value = data.coreProductItems || '';
@@ -351,12 +395,11 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                         this.elements.warrantyItems.value = data.warrantyItems || '';
                         this.elements.tradeIn.value = data.tradeInSales || '';
                         this.elements.tradeInItems.value = data.tradeInItems || '';
-                        
-                        // Jana laporan secara automatik
-                        this.generateReport(data); 
                     } else {
                         this.resetDailyInputs();
-                        const selectedDate = new Date(dateKey);
+                        const [year, month, day] = dateKey.split('-').map(Number);
+                        const selectedDate = new Date(year, month - 1, day);
+
                         if (selectedDate.getDate() === 1) {
                             this.elements.upToDateSales.value = 0;
                         } else {
@@ -366,14 +409,14 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                             const yesterdayRef = doc(this.db, `artifacts/${this.appId}/public/data/salesReports/${yesterdayKey}`);
                             const yesterdaySnap = await getDoc(yesterdayRef);
                             
-                            if (yesterdaySnap.exists() && yesterday.getMonth() === selectedDate.getMonth()) {
+                            if (yesterdaySnap.exists() && yesterday.getMonth() === selectedDate.getMonth() -1) {
                                 this.elements.upToDateSales.value = yesterdaySnap.data().newUpToDateSales || 0;
                             } else {
                                 this.elements.upToDateSales.value = 0;
                             }
                         }
-                        this.elements.output.textContent = 'The report will be displayed here...';
                     }
+                    this.liveUpdateReport();
                 } catch (error) {
                     console.error("Error loading data:", error);
                 }
@@ -385,66 +428,146 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                 });
             },
 
-            // --- Fungsi Bantuan (UI & Utiliti) ---
-
             updateDateFields() {
                 const dateValue = this.elements.salesDate.value;
                 if (dateValue) {
-                    const date = new Date(dateValue);
-                    this.elements.currentDay.value = date.getDate();
-                    this.elements.totalDays.value = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+                    const [year, month, day] = dateValue.split('-').map(Number);
+                    this.elements.currentDay.value = day;
+                    this.elements.totalDays.value = new Date(year, month, 0).getDate();
                 }
             },
             
             copyReport() {
                 navigator.clipboard.writeText(this.elements.output.textContent).then(() => {
-                    this.elements.copyBtn.textContent = 'Copied Successfully!';
-                    this.elements.copyBtn.classList.replace('bg-green-600', 'bg-yellow-500');
-                    setTimeout(() => {
-                        this.elements.copyBtn.textContent = 'Copy Text';
-                        this.elements.copyBtn.classList.replace('bg-yellow-500', 'bg-green-600');
-                    }, 2000);
+                    this.showToast("Report copied to clipboard!");
                 });
             },
 
             async showHistory() {
-                this.elements.historyTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4">Loading history...</td></tr>';
                 this.elements.historyModal.classList.remove('hidden');
                 setTimeout(() => this.elements.historyModal.classList.remove('opacity-0'), 10);
+                this.elements.historyTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-4">Loading history...</td></tr>';
                 
                 try {
                     const reportsCol = collection(this.db, `artifacts/${this.appId}/public/data/salesReports`);
                     const querySnapshot = await getDocs(query(reportsCol));
+                    this.allReports = [];
+                    querySnapshot.forEach(doc => this.allReports.push(doc.data()));
+                    this.allReports.sort((a, b) => new Date(a.dateKey) - new Date(b.dateKey));
                     
-                    const reports = [];
-                    querySnapshot.forEach(doc => reports.push(doc.data()));
-                    reports.sort((a, b) => new Date(b.dateKey) - new Date(a.dateKey));
+                    const today = new Date();
+                    this.elements.historyMonth.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+                    this.updateHistoryDashboard();
 
-                    this.elements.historyTableBody.innerHTML = ''; 
-                    if (reports.length === 0) {
-                        this.elements.historyTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4">No history found.</td></tr>';
-                    } else {
-                        reports.forEach(report => {
-                            const dailySales = (report.coreProductSales || 0) + (report.accessoriesSales || 0) + (report.warrantySales || 0) + (report.tradeInSales || 0);
-                            const achievement = report.monthlyTarget > 0 ? ((report.newUpToDateSales || 0) / report.monthlyTarget) * 100 : 0;
-                            const displayDate = new Date(report.dateKey);
-                            // Tambah 1 hari untuk betulkan zon masa
-                            displayDate.setDate(displayDate.getDate() + 1);
-
-                            const row = `
-                                <tr class="border-b">
-                                    <td class="p-2">${displayDate.toLocaleDateString('en-GB')}</td>
-                                    <td class="p-2">${this.formatCurrency(dailySales)}</td>
-                                    <td class="p-2">${this.formatCurrency(report.newUpToDateSales)}</td>
-                                    <td class="p-2">${achievement.toFixed(0)}%</td>
-                                </tr>`;
-                            this.elements.historyTableBody.innerHTML += row;
-                        });
-                    }
                 } catch(error) {
                     console.error("Error fetching history: ", error);
-                    this.elements.historyTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Could not load history.</td></tr>';
+                    this.elements.historyTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-red-500">Could not load history.</td></tr>';
                 }
+            },
+            
+            updateHistoryDashboard() {
+                const [year, month] = this.elements.historyMonth.value.split('-').map(Number);
+                const filteredReports = this.allReports.filter(r => {
+                    const reportDate = new Date(r.dateKey);
+                    return reportDate.getFullYear() === year && reportDate.getMonth() + 1 === month;
+                });
+
+                this.renderHistoryTable(filteredReports);
+                this.renderHistoryChart(filteredReports, year, month);
+            },
+            
+            renderHistoryTable(reports) {
+                this.elements.historyTableBody.innerHTML = ''; 
+                if (reports.length === 0) {
+                    this.elements.historyTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-4">No data for this month.</td></tr>';
+                    return;
+                }
+                reports.forEach(report => {
+                    const [year, month, day] = report.dateKey.split('-').map(Number);
+                    const displayDate = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+                    const dailySales = (report.coreProductSales || 0) + (report.accessoriesSales || 0) + (report.warrantySales || 0) + (report.tradeInSales || 0);
+                    const row = `
+                        <tr class="border-b">
+                            <td class="p-2">${displayDate}</td>
+                            <td class="p-2 text-right">${this.formatCurrency(report.coreProductSales)}</td>
+                            <td class="p-2 text-right">${this.formatCurrency(report.accessoriesSales)}</td>
+                            <td class="p-2 text-right">${this.formatCurrency(report.warrantySales)}</td>
+                            <td class="p-2 text-right">${this.formatCurrency(report.tradeInSales)}</td>
+                            <td class="p-2 text-right font-bold">${this.formatCurrency(dailySales)}</td>
+                            <td class="p-2 text-right font-bold">${this.formatCurrency(report.newUpToDateSales)}</td>
+                        </tr>`;
+                    this.elements.historyTableBody.innerHTML += row;
+                });
+            },
+
+            renderHistoryChart(reports, year, month) {
+                const daysInMonth = new Date(year, month, 0).getDate();
+                const labels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+                
+                const cumulativeSalesData = new Array(daysInMonth).fill(null);
+                reports.forEach(report => {
+                    const day = new Date(report.dateKey).getDate();
+                    cumulativeSalesData[day] = report.newUpToDateSales;
+                });
+                
+                // Forward-fill null values
+                for (let i = 1; i < cumulativeSalesData.length; i++) {
+                    if (cumulativeSalesData[i] === null) {
+                        cumulativeSalesData[i] = cumulativeSalesData[i - 1];
+                    }
+                }
+
+                const target = parseFloat(this.elements.monthlyTarget.value) || 0;
+                const baseline = parseFloat(this.elements.baselineTarget.value) || 0;
+
+                if (this.salesChartInstance) {
+                    this.salesChartInstance.destroy();
+                }
+
+                this.salesChartInstance = new Chart(this.elements.salesChart, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Cumulative Sales',
+                                data: cumulativeSalesData,
+                                borderColor: 'rgb(59, 130, 246)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                fill: true,
+                                tension: 0.1,
+                                spanGaps: true
+                            },
+                            {
+                                label: 'Target',
+                                data: Array(daysInMonth).fill(target),
+                                borderColor: 'rgb(22, 163, 74)',
+                                borderDash: [5, 5],
+                                pointRadius: 0,
+                                fill: false
+                            },
+                             {
+                                label: 'Baseline',
+                                data: Array(daysInMonth).fill(baseline),
+                                borderColor: 'rgb(234, 179, 8)',
+                                borderDash: [5, 5],
+                                pointRadius: 0,
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: (value) => `RM ${this.formatCurrency(value)}`
+                                }
+                            }
+                        }
+                    }
+                });
             },
 
             hideModal() {
@@ -461,23 +584,18 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
             },
 
             showError(message) {
-                if (this.elements.container) {
-                    this.elements.container.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
-                        <strong class="font-bold">Application Error!</strong>
-                        <span class="block sm:inline">${message}</span>
-                    </div>`;
-                }
+                this.elements.container.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert"><strong class="font-bold">Application Error!</strong><span class="block sm:inline">${message}</span></div>`;
             },
 
             formatDate(date) {
-                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                const [year, month, day] = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')];
+                return `${year}-${month}-${day}`;
             },
 
             formatCurrency(value) {
                 return (value || 0).toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             },
 
-            // Fungsi utama untuk memulakan keseluruhan aplikasi
             async init() {
                 const isFirebaseReady = await this.initFirebase();
                 if (isFirebaseReady) {
@@ -489,7 +607,6 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
             }
         };
 
-        // Mulakan aplikasi apabila DOM sedia
         document.addEventListener('DOMContentLoaded', () => {
             SalesApp.init();
         });
