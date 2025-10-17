@@ -9,18 +9,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .input-group {
-            margin-bottom: 1rem;
-        }
-        .input-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #4A5568;
-            font-weight: 500;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .input-group { margin-bottom: 1rem; }
+        .input-group label { display: block; margin-bottom: 0.5rem; color: #4A5568; font-weight: 500; }
         .input-group input, .input-group textarea {
             width: 100%;
             padding: 0.75rem;
@@ -43,19 +34,18 @@
             border: 1px solid #e2e8f0;
             min-height: 200px;
         }
-        .modal {
-            transition: opacity 0.3s ease;
-        }
+        .modal { transition: opacity 0.3s ease; }
+        .toast { transition: opacity 0.5s, transform 0.5s; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-8xl">
+    <div id="app-container" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-3xl">
         <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
             
             <header class="mb-8 text-center">
                 <h1 class="text-3xl font-bold text-gray-900">Sales Report Calculator</h1>
-                <p class="text-gray-500 mt-2">Fill in the information, calculate, and your data will be saved automatically.</p>
+                <p class="text-gray-500 mt-2">Your data is now saved online and accessible from any device.</p>
             </header>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -158,7 +148,7 @@
                             </tr>
                         </thead>
                         <tbody id="historyTableBody">
-                            <!-- History data will be populated here -->
+                            <!-- Data sejarah akan dimasukkan di sini -->
                         </tbody>
                     </table>
                 </div>
@@ -166,280 +156,335 @@
         </div>
     </div>
 
+    <!-- Toast Notification -->
+    <div id="toast" class="toast fixed bottom-5 right-5 bg-gray-800 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transform translate-y-10">
+        <p id="toast-message"></p>
+    </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const salesDateInput = document.getElementById('salesDate');
-            const calculateBtn = document.getElementById('calculateBtn');
-            const copyBtn = document.getElementById('copyBtn');
-            const historyBtn = document.getElementById('historyBtn');
-            const historyModal = document.getElementById('historyModal');
-            const closeModalBtn = document.getElementById('closeModalBtn');
 
-            const STORAGE_CONFIG_KEY = 'salesReportConfig';
-            const STORAGE_DATA_PREFIX = 'salesReport-';
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-            // --- Utility Functions ---
-            function formatCurrency(value) {
-                return (value || 0).toLocaleString('ms-MY', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
+        const SalesApp = {
+            db: null,
+            auth: null,
+            appId: 'sales-calculator-app', // ID ini MESTI sepadan dengan ID dalam Firestore Rules anda
+
+            // Rujukan kepada elemen-elemen DOM
+            elements: {
+                container: document.getElementById('app-container'),
+                salesDate: document.getElementById('salesDate'),
+                calculateBtn: document.getElementById('calculateBtn'),
+                copyBtn: document.getElementById('copyBtn'),
+                historyBtn: document.getElementById('historyBtn'),
+                historyModal: document.getElementById('historyModal'),
+                closeModalBtn: document.getElementById('closeModalBtn'),
+                historyTableBody: document.getElementById('historyTableBody'),
+                toast: document.getElementById('toast'),
+                toastMessage: document.getElementById('toast-message'),
+                output: document.getElementById('output'),
+                // Tambah semua input fields di sini untuk rujukan mudah
+                shopName: document.getElementById('shopName'),
+                monthlyTarget: document.getElementById('monthlyTarget'),
+                upToDateSales: document.getElementById('upToDateSales'),
+                coreProduct: document.getElementById('coreProduct'),
+                coreProductItems: document.getElementById('coreProductItems'),
+                accessories: document.getElementById('accessories'),
+                accessoriesItems: document.getElementById('accessoriesItems'),
+                warranty: document.getElementById('warranty'),
+                warrantyItems: document.getElementById('warrantyItems'),
+                tradeIn: document.getElementById('tradeIn'),
+                tradeInItems: document.getElementById('tradeInItems'),
+                currentDay: document.getElementById('currentDay'),
+                totalDays: document.getElementById('totalDays'),
+            },
+
+            // Fungsi untuk memulakan sambungan Firebase
+            async initFirebase() {
+                try {
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyCWR7vfKgtNZrXutLmdd0163EhMUrLkBQA",
+                        authDomain: "sales-report-app-ab55e.firebaseapp.com",
+                        projectId: "sales-report-app-ab55e",
+                        storageBucket: "sales-report-app-ab55e.appspot.com",
+                        messagingSenderId: "357226489797",
+                        appId: "1:357226489797:web:7beee72678971a468b8dac",
+                        measurementId: "G-03PBVT3BDX"
+                    };
+                    const app = initializeApp(firebaseConfig);
+                    this.db = getFirestore(app);
+                    this.auth = getAuth(app);
+                    await signInAnonymously(this.auth);
+                    return true;
+                } catch (error) {
+                    console.error("Firebase initialization failed:", error);
+                    this.showError(`Database Connection Error! Could not initialize the database. Please check your Firebase configuration and security rules. Details: ${error.message}`);
+                    return false;
+                }
+            },
+
+            // Mengikat semua event listeners
+            bindEvents() {
+                this.elements.salesDate.addEventListener('change', () => {
+                    this.updateDateFields();
+                    this.loadDataForDate(this.elements.salesDate.value);
                 });
-            }
+                this.elements.calculateBtn.addEventListener('click', () => this.calculateAndSave());
+                this.elements.copyBtn.addEventListener('click', () => this.copyReport());
+                this.elements.historyBtn.addEventListener('click', () => this.showHistory());
+                this.elements.closeModalBtn.addEventListener('click', () => this.hideModal());
+                this.elements.historyModal.addEventListener('click', (e) => {
+                    if (e.target === this.elements.historyModal) this.hideModal();
+                });
+            },
 
-            function formatDate(date) {
-                const yyyy = date.getFullYear();
-                const mm = String(date.getMonth() + 1).padStart(2, '0');
-                const dd = String(date.getDate()).padStart(2, '0');
-                return `${yyyy}-${mm}-${dd}`;
-            }
+            // --- Fungsi Utama ---
 
-            function updateDateFields() {
-                const dateValue = salesDateInput.value;
-                if (dateValue) {
-                    const date = new Date(dateValue);
-                    document.getElementById('currentDay').value = date.getDate();
-                    document.getElementById('totalDays').value = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-                }
-            }
-            
-            // --- Local Storage Functions ---
-            function saveData(data) {
-                // Save general config
-                const config = {
-                    shopName: data.shopName,
-                    monthlyTarget: data.monthlyTarget,
-                };
-                localStorage.setItem(STORAGE_CONFIG_KEY, JSON.stringify(config));
-                
-                // Save daily data
-                localStorage.setItem(STORAGE_DATA_PREFIX + data.dateKey, JSON.stringify(data));
-            }
-
-            function loadDataForDate(dateKey) {
-                // Load config first as a fallback
-                const config = JSON.parse(localStorage.getItem(STORAGE_CONFIG_KEY) || '{}');
-                document.getElementById('shopName').value = config.shopName || 'SMKT';
-                document.getElementById('monthlyTarget').value = config.monthlyTarget || '';
-
-                // Try to load data for the selected date to allow editing
-                const todaysData = JSON.parse(localStorage.getItem(STORAGE_DATA_PREFIX + dateKey) || 'null');
-
-                if (todaysData) { // If data for this exact day exists, load it for editing.
-                    document.getElementById('shopName').value = todaysData.shopName;
-                    document.getElementById('monthlyTarget').value = todaysData.monthlyTarget;
-                    document.getElementById('upToDateSales').value = todaysData.previousUpToDateSales;
-                    document.getElementById('coreProduct').value = todaysData.coreProductSales;
-                    document.getElementById('accessories').value = todaysData.accessoriesSales;
-                    document.getElementById('warranty').value = todaysData.warrantySales || '';
-                    document.getElementById('tradeIn').value = todaysData.tradeInSales || '';
-                    document.getElementById('coreProductItems').value = todaysData.coreProductItems || '';
-                    document.getElementById('accessoriesItems').value = todaysData.accessoriesItems || '';
-                    document.getElementById('warrantyItems').value = todaysData.warrantyItems || '';
-                    document.getElementById('tradeInItems').value = todaysData.tradeInItems || '';
-                } else { // This is a new entry for the selected date.
-                    // Clear daily sales inputs
-                    document.getElementById('coreProduct').value = '';
-                    document.getElementById('accessories').value = '';
-                    document.getElementById('warranty').value = '';
-                    document.getElementById('tradeIn').value = '';
-                    document.getElementById('coreProductItems').value = '';
-                    document.getElementById('accessoriesItems').value = '';
-                    document.getElementById('warrantyItems').value = '';
-                    document.getElementById('tradeInItems').value = '';
-
-                    const selectedDate = new Date(dateKey);
-                    
-                    // On the 1st of the month, reset the "up to date sales"
-                    if (selectedDate.getDate() === 1) {
-                        document.getElementById('upToDateSales').value = 0;
-                    } else {
-                        // Look for yesterday's data to carry over
-                        const yesterday = new Date(selectedDate);
-                        yesterday.setDate(yesterday.getDate() - 1);
-                        const yesterdayKey = formatDate(yesterday);
-                        const yesterdaysData = JSON.parse(localStorage.getItem(STORAGE_DATA_PREFIX + yesterdayKey) || 'null');
-                        
-                        // IMPORTANT: Only carry over if yesterday was in the same month.
-                        if (yesterdaysData && yesterday.getMonth() === selectedDate.getMonth()) {
-                            document.getElementById('upToDateSales').value = yesterdaysData.newUpToDateSales;
-                        } else {
-                            // If yesterday's data is missing or from a previous month, start from 0.
-                            document.getElementById('upToDateSales').value = 0;
-                        }
-                    }
-                }
-                
-                // Clear output on date change
-                document.getElementById('output').textContent = 'The report will be displayed here...';
-            }
-
-            // --- Event Listeners ---
-            salesDateInput.addEventListener('change', () => {
-                updateDateFields();
-                loadDataForDate(salesDateInput.value);
-            });
-
-            calculateBtn.addEventListener('click', function() {
-                const salesDate = new Date(document.getElementById('salesDate').value);
-                
+            async calculateAndSave() {
+                const salesDate = new Date(this.elements.salesDate.value);
                 const data = {
-                    shopName: document.getElementById('shopName').value,
-                    monthlyTarget: parseFloat(document.getElementById('monthlyTarget').value) || 0,
-                    previousUpToDateSales: parseFloat(document.getElementById('upToDateSales').value) || 0,
-                    coreProductSales: parseFloat(document.getElementById('coreProduct').value) || 0,
-                    accessoriesSales: parseFloat(document.getElementById('accessories').value) || 0,
-                    warrantySales: parseFloat(document.getElementById('warranty').value) || 0,
-                    tradeInSales: parseFloat(document.getElementById('tradeIn').value) || 0,
-                    coreProductItems: document.getElementById('coreProductItems').value.trim(),
-                    accessoriesItems: document.getElementById('accessoriesItems').value.trim(),
-                    warrantyItems: document.getElementById('warrantyItems').value.trim(),
-                    tradeInItems: document.getElementById('tradeInItems').value.trim(),
-                    dateKey: formatDate(salesDate)
+                    shopName: this.elements.shopName.value,
+                    monthlyTarget: parseFloat(this.elements.monthlyTarget.value) || 0,
+                    previousUpToDateSales: parseFloat(this.elements.upToDateSales.value) || 0,
+                    coreProductSales: parseFloat(this.elements.coreProduct.value) || 0,
+                    accessoriesSales: parseFloat(this.elements.accessories.value) || 0,
+                    warrantySales: parseFloat(this.elements.warranty.value) || 0,
+                    tradeInSales: parseFloat(this.elements.tradeIn.value) || 0,
+                    coreProductItems: this.elements.coreProductItems.value.trim(),
+                    accessoriesItems: this.elements.accessoriesItems.value.trim(),
+                    warrantyItems: this.elements.warrantyItems.value.trim(),
+                    tradeInItems: this.elements.tradeInItems.value.trim(),
+                    dateKey: this.formatDate(salesDate)
                 };
 
-                const currentDay = parseInt(document.getElementById('currentDay').value) || 1;
-                const totalDays = parseInt(document.getElementById('totalDays').value) || 30;
+                const currentDay = salesDate.getDate();
+                const totalDays = new Date(salesDate.getFullYear(), salesDate.getMonth() + 1, 0).getDate();
 
                 const dailySales = data.coreProductSales + data.accessoriesSales + data.warrantySales + data.tradeInSales;
                 data.newUpToDateSales = data.previousUpToDateSales + dailySales;
+                
+                this.generateReport(data);
+                
+                // Simpan ke Firestore
+                try {
+                    const reportRef = doc(this.db, `artifacts/${this.appId}/public/data/salesReports/${data.dateKey}`);
+                    await setDoc(reportRef, data);
+
+                    const configRef = doc(this.db, `artifacts/${this.appId}/public/data/salesConfig/config`);
+                    await setDoc(configRef, { shopName: data.shopName, monthlyTarget: data.monthlyTarget }, { merge: true });
+
+                    this.showToast("Report saved successfully!");
+                } catch (error) {
+                    console.error("Error saving data:", error);
+                    this.showToast("Failed to save report.", false);
+                }
+            },
+
+            generateReport(data) {
+                const salesDate = new Date(data.dateKey);
+                const currentDay = salesDate.getDate();
+                const totalDays = new Date(salesDate.getFullYear(), salesDate.getMonth() + 1, 0).getDate();
+                
+                const dailySales = data.coreProductSales + data.accessoriesSales + data.warrantySales + data.tradeInSales;
                 const upToDatePercent = data.monthlyTarget > 0 ? (data.newUpToDateSales / data.monthlyTarget) * 100 : 0;
                 const estimatedClosing = currentDay > 0 ? (data.newUpToDateSales / currentDay) * totalDays : 0;
                 const estimatedClosingPercent = data.monthlyTarget > 0 ? (estimatedClosing / data.monthlyTarget) * 100 : 0;
+                
+                const formattedDisplayDate = `${String(salesDate.getDate()).padStart(2, '0')}/${String(salesDate.getMonth() + 1).padStart(2, '0')}/${salesDate.getFullYear()}`;
 
-                const day = String(salesDate.getDate()).padStart(2, '0');
-                const month = String(salesDate.getMonth() + 1).padStart(2, '0');
-                const year = salesDate.getFullYear();
-                const formattedDisplayDate = `${day}/${month}/${year}`;
-
-                // --- Build sales breakdown string with item lists ---
                 const breakdownParts = [];
-                
-                // Core Product
-                if (data.coreProductSales > 0) {
-                    let part = `Core Product : RM ${formatCurrency(data.coreProductSales)}`;
-                    if (data.coreProductItems) {
-                        part += `\n${data.coreProductItems.split('\n').map(item => item.trim()).join('\n')}`;
-                    }
-                    breakdownParts.push(part);
-                }
+                const categories = [
+                    { title: 'Core Product', sales: data.coreProductSales, items: data.coreProductItems },
+                    { title: 'Accessories', sales: data.accessoriesSales, items: data.accessoriesItems },
+                    { title: 'Warranty', sales: data.warrantySales, items: data.warrantyItems },
+                    { title: 'Trade In', sales: data.tradeInSales, items: data.tradeInItems },
+                ];
 
-                // Accessories
-                if (data.accessoriesSales > 0) {
-                    let part = `Accessories : RM ${formatCurrency(data.accessoriesSales)}`;
-                    if (data.accessoriesItems) {
-                        part += `\n${data.accessoriesItems.split('\n').map(item => item.trim()).join('\n')}`;
+                categories.forEach(cat => {
+                    if (cat.sales > 0) {
+                        let part = `${cat.title} : RM ${this.formatCurrency(cat.sales)}`;
+                        if (cat.items) {
+                            part += `\n${cat.items.split('\n').map(item => item.trim()).join('\n')}`;
+                        }
+                        breakdownParts.push(part);
                     }
-                    breakdownParts.push(part);
-                }
-
-                // Warranty
-                if (data.warrantySales > 0) {
-                    let part = `Warranty : RM ${formatCurrency(data.warrantySales)}`;
-                    if (data.warrantyItems) {
-                        part += `\n${data.warrantyItems.split('\n').map(item => item.trim()).join('\n')}`;
-                    }
-                    breakdownParts.push(part);
-                }
-                
-                // Trade In
-                if (data.tradeInSales > 0) {
-                    let part = `Trade In : RM ${formatCurrency(data.tradeInSales)}`;
-                     if (data.tradeInItems) {
-                        part += `\n${data.tradeInItems.split('\n').map(item => item.trim()).join('\n')}`;
-                    }
-                    breakdownParts.push(part);
-                }
+                });
                 
                 const salesBreakdown = breakdownParts.join('\n\n');
 
                 const outputText = 
-`${data.shopName.toUpperCase()} ${formattedDisplayDate} Sales : RM ${formatCurrency(dailySales)}
+`${data.shopName.toUpperCase()} ${formattedDisplayDate} Sales : RM ${this.formatCurrency(dailySales)}
 
 ${salesBreakdown}
 
-Target : RM ${formatCurrency(data.monthlyTarget)}
-Up to Date : RM ${formatCurrency(data.newUpToDateSales)} (${upToDatePercent.toFixed(0)}%)
-Estimated Closing : RM ${formatCurrency(estimatedClosing)} (${estimatedClosingPercent.toFixed(0)}%)`;
+Target : RM ${this.formatCurrency(data.monthlyTarget)}
+Up to Date : RM ${this.formatCurrency(data.newUpToDateSales)} (${upToDatePercent.toFixed(0)}%)
+Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClosingPercent.toFixed(0)}%)`;
 
-                document.getElementById('output').textContent = outputText;
-                
-                // Save the calculated data
-                saveData(data);
-            });
-        
-            copyBtn.addEventListener('click', function() {
-                const outputText = document.getElementById('output').textContent;
-                navigator.clipboard.writeText(outputText).then(() => {
-                    copyBtn.textContent = 'Copied Successfully!';
-                    copyBtn.classList.remove('bg-green-600');
-                    copyBtn.classList.add('bg-yellow-500');
+                this.elements.output.textContent = outputText;
+            },
+            
+            async loadDataForDate(dateKey) {
+                try {
+                    const configRef = doc(this.db, `artifacts/${this.appId}/public/data/salesConfig/config`);
+                    const configSnap = await getDoc(configRef);
+                    if (configSnap.exists()) {
+                        const config = configSnap.data();
+                        this.elements.shopName.value = config.shopName || 'SMKT';
+                        this.elements.monthlyTarget.value = config.monthlyTarget || '';
+                    }
 
+                    const reportRef = doc(this.db, `artifacts/${this.appId}/public/data/salesReports/${dateKey}`);
+                    const reportSnap = await getDoc(reportRef);
+
+                    if (reportSnap.exists()) {
+                        const data = reportSnap.data();
+                        Object.keys(data).forEach(key => {
+                            if (this.elements[key]) {
+                                this.elements[key].value = data[key];
+                            }
+                        });
+                        this.elements.upToDateSales.value = data.previousUpToDateSales || 0;
+                    } else {
+                        this.resetDailyInputs();
+                        const selectedDate = new Date(dateKey);
+                        if (selectedDate.getDate() === 1) {
+                            this.elements.upToDateSales.value = 0;
+                        } else {
+                            const yesterday = new Date(selectedDate);
+                            yesterday.setDate(yesterday.getDate() - 1);
+                            const yesterdayKey = this.formatDate(yesterday);
+                            const yesterdayRef = doc(this.db, `artifacts/${this.appId}/public/data/salesReports/${yesterdayKey}`);
+                            const yesterdaySnap = await getDoc(yesterdayRef);
+                            
+                            if (yesterdaySnap.exists() && yesterday.getMonth() === selectedDate.getMonth()) {
+                                this.elements.upToDateSales.value = yesterdaySnap.data().newUpToDateSales || 0;
+                            } else {
+                                this.elements.upToDateSales.value = 0;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error loading data:", error);
+                }
+                this.elements.output.textContent = 'The report will be displayed here...';
+            },
+
+            resetDailyInputs() {
+                ['coreProduct', 'coreProductItems', 'accessories', 'accessoriesItems', 'warranty', 'warrantyItems', 'tradeIn', 'tradeInItems'].forEach(id => {
+                    this.elements[id].value = '';
+                });
+            },
+
+            // --- Fungsi Bantuan (UI & Utiliti) ---
+
+            updateDateFields() {
+                const dateValue = this.elements.salesDate.value;
+                if (dateValue) {
+                    const date = new Date(dateValue);
+                    this.elements.currentDay.value = date.getDate();
+                    this.elements.totalDays.value = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+                }
+            },
+            
+            copyReport() {
+                navigator.clipboard.writeText(this.elements.output.textContent).then(() => {
+                    this.elements.copyBtn.textContent = 'Copied Successfully!';
+                    this.elements.copyBtn.classList.replace('bg-green-600', 'bg-yellow-500');
                     setTimeout(() => {
-                        copyBtn.textContent = 'Copy Text';
-                        copyBtn.classList.remove('bg-yellow-500');
-                        copyBtn.classList.add('bg-green-600');
+                        this.elements.copyBtn.textContent = 'Copy Text';
+                        this.elements.copyBtn.classList.replace('bg-yellow-500', 'bg-green-600');
                     }, 2000);
                 });
-            });
+            },
 
-            // --- Modal Logic ---
-            historyBtn.addEventListener('click', () => {
-                const historyTableBody = document.getElementById('historyTableBody');
-                historyTableBody.innerHTML = ''; // Clear previous content
+            async showHistory() {
+                this.elements.historyTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4">Loading history...</td></tr>';
+                this.elements.historyModal.classList.remove('hidden');
+                setTimeout(() => this.elements.historyModal.classList.remove('opacity-0'), 10);
                 
-                const reports = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key.startsWith(STORAGE_DATA_PREFIX)) {
-                        reports.push(JSON.parse(localStorage.getItem(key)));
+                try {
+                    const reportsCol = collection(this.db, `artifacts/${this.appId}/public/data/salesReports`);
+                    const querySnapshot = await getDocs(query(reportsCol));
+                    
+                    const reports = [];
+                    querySnapshot.forEach(doc => reports.push(doc.data()));
+                    reports.sort((a, b) => new Date(b.dateKey) - new Date(a.dateKey));
+
+                    this.elements.historyTableBody.innerHTML = ''; 
+                    if (reports.length === 0) {
+                        this.elements.historyTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4">No history found.</td></tr>';
+                    } else {
+                        reports.forEach(report => {
+                            const dailySales = (report.coreProductSales || 0) + (report.accessoriesSales || 0) + (report.warrantySales || 0) + (report.tradeInSales || 0);
+                            const achievement = report.monthlyTarget > 0 ? ((report.newUpToDateSales || 0) / report.monthlyTarget) * 100 : 0;
+                            const displayDate = new Date(report.dateKey).toLocaleDateString('en-GB');
+                            
+                            const row = `
+                                <tr class="border-b">
+                                    <td class="p-2">${displayDate}</td>
+                                    <td class="p-2">${this.formatCurrency(dailySales)}</td>
+                                    <td class="p-2">${this.formatCurrency(report.newUpToDateSales)}</td>
+                                    <td class="p-2">${achievement.toFixed(0)}%</td>
+                                </tr>`;
+                            this.elements.historyTableBody.innerHTML += row;
+                        });
                     }
+                } catch(error) {
+                    console.error("Error fetching history: ", error);
+                    this.elements.historyTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Could not load history.</td></tr>';
                 }
+            },
 
-                // Sort by date descending
-                reports.sort((a, b) => new Date(b.dateKey) - new Date(a.dateKey));
+            hideModal() {
+                 this.elements.historyModal.classList.add('opacity-0');
+                 setTimeout(() => this.elements.historyModal.classList.add('hidden'), 300);
+            },
 
-                if (reports.length === 0) {
-                    historyTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4">No history found.</td></tr>';
-                } else {
-                    reports.forEach(report => {
-                        const dailySales = report.coreProductSales + report.accessoriesSales + (report.warrantySales || 0) + (report.tradeInSales || 0);
-                        const achievement = report.monthlyTarget > 0 ? (report.newUpToDateSales / report.monthlyTarget) * 100 : 0;
-                        const displayDate = new Date(report.dateKey).toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric'});
-                        
-                        const row = `
-                            <tr class="border-b">
-                                <td class="p-2">${displayDate}</td>
-                                <td class="p-2">${formatCurrency(dailySales)}</td>
-                                <td class="p-2">${formatCurrency(report.newUpToDateSales)}</td>
-                                <td class="p-2">${achievement.toFixed(0)}%</td>
-                            </tr>
-                        `;
-                        historyTableBody.innerHTML += row;
-                    });
+            showToast(message, isSuccess = true) {
+                this.elements.toastMessage.textContent = message;
+                this.elements.toast.className = 'toast fixed bottom-5 right-5 py-2 px-4 rounded-lg shadow-lg';
+                this.elements.toast.classList.add(isSuccess ? 'bg-green-600' : 'bg-red-600', 'text-white');
+                this.elements.toast.classList.remove('opacity-0', 'translate-y-10');
+                setTimeout(() => this.elements.toast.classList.add('opacity-0', 'translate-y-10'), 3000);
+            },
+
+            showError(message) {
+                if (this.elements.container) {
+                    this.elements.container.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
+                        <strong class="font-bold">Application Error!</strong>
+                        <span class="block sm:inline">${message}</span>
+                    </div>`;
                 }
-                
-                historyModal.classList.remove('hidden');
-                setTimeout(() => historyModal.classList.remove('opacity-0'), 10);
-            });
-            
-            function hideModal() {
-                 historyModal.classList.add('opacity-0');
-                 setTimeout(() => historyModal.classList.add('hidden'), 300);
+            },
+
+            formatDate(date) {
+                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            },
+
+            formatCurrency(value) {
+                return (value || 0).toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            },
+
+            // Fungsi utama untuk memulakan keseluruhan aplikasi
+            async init() {
+                const isFirebaseReady = await this.initFirebase();
+                if (isFirebaseReady) {
+                    this.bindEvents();
+                    this.elements.salesDate.value = this.formatDate(new Date());
+                    this.updateDateFields();
+                    await this.loadDataForDate(this.elements.salesDate.value);
+                }
             }
+        };
 
-            closeModalBtn.addEventListener('click', hideModal);
-            historyModal.addEventListener('click', (e) => {
-                if (e.target === historyModal) {
-                    hideModal();
-                }
-            });
-
-            // --- Initial Load ---
-            salesDateInput.value = formatDate(new Date()); // Set today's date
-            updateDateFields();
-            loadDataForDate(salesDateInput.value); // Load data for today
+        // Mulakan aplikasi apabila DOM sedia
+        document.addEventListener('DOMContentLoaded', () => {
+            SalesApp.init();
         });
+
     </script>
 
 </body>
