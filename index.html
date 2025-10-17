@@ -125,7 +125,7 @@
             </div>
         </div>
         <footer class="text-center mt-6 text-sm text-gray-400">
-            <p>&copy; 2025 Created for SMKT (Terengganu).</p>
+            <p>&copy; 2024 Created for SMKT (Terengganu).</p>
         </footer>
     </div>
 
@@ -259,9 +259,6 @@
                     dateKey: this.formatDate(salesDate)
                 };
 
-                const currentDay = salesDate.getDate();
-                const totalDays = new Date(salesDate.getFullYear(), salesDate.getMonth() + 1, 0).getDate();
-
                 const dailySales = data.coreProductSales + data.accessoriesSales + data.warrantySales + data.tradeInSales;
                 data.newUpToDateSales = data.previousUpToDateSales + dailySales;
                 
@@ -284,6 +281,9 @@
 
             generateReport(data) {
                 const salesDate = new Date(data.dateKey);
+                // Tambah 1 hari untuk betulkan zon masa
+                salesDate.setDate(salesDate.getDate() + 1);
+
                 const currentDay = salesDate.getDate();
                 const totalDays = new Date(salesDate.getFullYear(), salesDate.getMonth() + 1, 0).getDate();
                 
@@ -341,12 +341,19 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
 
                     if (reportSnap.exists()) {
                         const data = reportSnap.data();
-                        Object.keys(data).forEach(key => {
-                            if (this.elements[key]) {
-                                this.elements[key].value = data[key];
-                            }
-                        });
+                        // DIBETULKAN: Peta data secara eksplisit untuk elak ralat nama
                         this.elements.upToDateSales.value = data.previousUpToDateSales || 0;
+                        this.elements.coreProduct.value = data.coreProductSales || '';
+                        this.elements.coreProductItems.value = data.coreProductItems || '';
+                        this.elements.accessories.value = data.accessoriesSales || '';
+                        this.elements.accessoriesItems.value = data.accessoriesItems || '';
+                        this.elements.warranty.value = data.warrantySales || '';
+                        this.elements.warrantyItems.value = data.warrantyItems || '';
+                        this.elements.tradeIn.value = data.tradeInSales || '';
+                        this.elements.tradeInItems.value = data.tradeInItems || '';
+                        
+                        // Jana laporan secara automatik
+                        this.generateReport(data); 
                     } else {
                         this.resetDailyInputs();
                         const selectedDate = new Date(dateKey);
@@ -365,11 +372,11 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                                 this.elements.upToDateSales.value = 0;
                             }
                         }
+                        this.elements.output.textContent = 'The report will be displayed here...';
                     }
                 } catch (error) {
                     console.error("Error loading data:", error);
                 }
-                this.elements.output.textContent = 'The report will be displayed here...';
             },
 
             resetDailyInputs() {
@@ -420,11 +427,13 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                         reports.forEach(report => {
                             const dailySales = (report.coreProductSales || 0) + (report.accessoriesSales || 0) + (report.warrantySales || 0) + (report.tradeInSales || 0);
                             const achievement = report.monthlyTarget > 0 ? ((report.newUpToDateSales || 0) / report.monthlyTarget) * 100 : 0;
-                            const displayDate = new Date(report.dateKey).toLocaleDateString('en-GB');
-                            
+                            const displayDate = new Date(report.dateKey);
+                            // Tambah 1 hari untuk betulkan zon masa
+                            displayDate.setDate(displayDate.getDate() + 1);
+
                             const row = `
                                 <tr class="border-b">
-                                    <td class="p-2">${displayDate}</td>
+                                    <td class="p-2">${displayDate.toLocaleDateString('en-GB')}</td>
                                     <td class="p-2">${this.formatCurrency(dailySales)}</td>
                                     <td class="p-2">${this.formatCurrency(report.newUpToDateSales)}</td>
                                     <td class="p-2">${achievement.toFixed(0)}%</td>
