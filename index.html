@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Report Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .input-group {
+            margin-bottom: 1rem;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #4A5568;
+            font-weight: 500;
+        }
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #E2E8F0;
+            border-radius: 0.5rem;
+            transition: border-color 0.2s;
+        }
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #4299E1;
+            box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
+        }
+        .generated-text {
+            white-space: pre-wrap;
+            background-color: #edf2f7;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: monospace;
+            color: #2d3748;
+            border: 1px solid #e2e8f0;
+            min-height: 200px;
+        }
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-8xl">
+        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+            
+            <header class="mb-8 text-center">
+                <h1 class="text-3xl font-bold text-gray-900">Sales Report Calculator</h1>
+                <p class="text-gray-500 mt-2">Fill in the information, calculate, and your data will be saved automatically.</p>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Input Section -->
+                <div class="space-y-4">
+                    <div class="input-group">
+                        <label for="shopName">Company / Branch Name</label>
+                        <input type="text" id="shopName" value="SMKT" placeholder="E.g., SMKT">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="salesDate">Sales Date</label>
+                        <input type="date" id="salesDate">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="monthlyTarget">Monthly Sales Target (RM)</label>
+                        <input type="number" id="monthlyTarget" placeholder="E.g., 492000.00" step="0.01">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="upToDateSales">Up to Date Sales (Before Today) (RM)</label>
+                        <input type="number" id="upToDateSales" placeholder="Calculated automatically" readonly class="bg-gray-100">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="coreProduct">Core Product Sales (RM)</label>
+                        <input type="number" id="coreProduct" placeholder="E.g., 17795.00" step="0.01">
+                        <textarea id="coreProductItems" class="mt-2" rows="2" placeholder="Item list (one per line)..."></textarea>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="accessories">Accessories Sales (RM)</label>
+                        <input type="number" id="accessories" placeholder="E.g., 227.00" step="0.01">
+                        <textarea id="accessoriesItems" class="mt-2" rows="2" placeholder="Item list (one per line)..."></textarea>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="warranty">Warranty Sales (RM)</label>
+                        <input type="number" id="warranty" placeholder="Fill if available" step="0.01">
+                        <textarea id="warrantyItems" class="mt-2" rows="2" placeholder="Item list (one per line)..."></textarea>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="tradeIn">Trade In Sales (RM)</label>
+                        <input type="number" id="tradeIn" placeholder="Fill if available" step="0.01">
+                        <textarea id="tradeInItems" class="mt-2" rows="2" placeholder="Item list (one per line)..."></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="input-group">
+                            <label for="currentDay">Day</label>
+                            <input type="number" id="currentDay" placeholder="Auto" readonly class="bg-gray-100">
+                        </div>
+                        <div class="input-group">
+                            <label for="totalDays">Total Days</label>
+                            <input type="number" id="totalDays" placeholder="Auto" readonly class="bg-gray-100">
+                        </div>
+                    </div>
+                    
+                    <button id="calculateBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md">
+                        Calculate & Save Report
+                    </button>
+                    <button id="historyBtn" class="w-full bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-300 shadow-md">
+                        View History
+                    </button>
+                </div>
+                
+                <!-- Output Section -->
+                <div>
+                    <label class="block mb-2 font-medium text-gray-700">Generated Report</label>
+                    <div id="output" class="generated-text">The report will be displayed here...</div>
+                    <button id="copyBtn" class="mt-4 w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-300 shadow-md">
+                        Copy Text
+                    </button>
+                </div>
+            </div>
+        </div>
+        <footer class="text-center mt-6 text-sm text-gray-400">
+            <p>&copy; 2024 Created for your convenience.</p>
+        </footer>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h2 class="text-xl font-bold">Sales History</h2>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+            </div>
+            <div class="p-4 overflow-y-auto">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-2">Date</th>
+                                <th class="p-2">Daily Sales (RM)</th>
+                                <th class="p-2">Up to Date Sales (RM)</th>
+                                <th class="p-2">Achievement (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- History data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const salesDateInput = document.getElementById('salesDate');
+            const calculateBtn = document.getElementById('calculateBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const historyBtn = document.getElementById('historyBtn');
+            const historyModal = document.getElementById('historyModal');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+
+            const STORAGE_CONFIG_KEY = 'salesReportConfig';
+            const STORAGE_DATA_PREFIX = 'salesReport-';
+
+            // --- Utility Functions ---
+            function formatCurrency(value) {
+                return (value || 0).toLocaleString('ms-MY', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            function formatDate(date) {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            }
+
+            function updateDateFields() {
+                const dateValue = salesDateInput.value;
+                if (dateValue) {
+                    const date = new Date(dateValue);
+                    document.getElementById('currentDay').value = date.getDate();
+                    document.getElementById('totalDays').value = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+                }
+            }
+            
+            // --- Local Storage Functions ---
+            function saveData(data) {
+                // Save general config
+                const config = {
+                    shopName: data.shopName,
+                    monthlyTarget: data.monthlyTarget,
+                };
+                localStorage.setItem(STORAGE_CONFIG_KEY, JSON.stringify(config));
+                
+                // Save daily data
+                localStorage.setItem(STORAGE_DATA_PREFIX + data.dateKey, JSON.stringify(data));
+            }
+
+            function loadDataForDate(dateKey) {
+                // Load config first as a fallback
+                const config = JSON.parse(localStorage.getItem(STORAGE_CONFIG_KEY) || '{}');
+                document.getElementById('shopName').value = config.shopName || 'SMKT';
+                document.getElementById('monthlyTarget').value = config.monthlyTarget || '';
+
+                // Try to load data for the selected date to allow editing
+                const todaysData = JSON.parse(localStorage.getItem(STORAGE_DATA_PREFIX + dateKey) || 'null');
+
+                if (todaysData) { // If data for this exact day exists, load it for editing.
+                    document.getElementById('shopName').value = todaysData.shopName;
+                    document.getElementById('monthlyTarget').value = todaysData.monthlyTarget;
+                    document.getElementById('upToDateSales').value = todaysData.previousUpToDateSales;
+                    document.getElementById('coreProduct').value = todaysData.coreProductSales;
+                    document.getElementById('accessories').value = todaysData.accessoriesSales;
+                    document.getElementById('warranty').value = todaysData.warrantySales || '';
+                    document.getElementById('tradeIn').value = todaysData.tradeInSales || '';
+                    document.getElementById('coreProductItems').value = todaysData.coreProductItems || '';
+                    document.getElementById('accessoriesItems').value = todaysData.accessoriesItems || '';
+                    document.getElementById('warrantyItems').value = todaysData.warrantyItems || '';
+                    document.getElementById('tradeInItems').value = todaysData.tradeInItems || '';
+                } else { // This is a new entry for the selected date.
+                    // Clear daily sales inputs
+                    document.getElementById('coreProduct').value = '';
+                    document.getElementById('accessories').value = '';
+                    document.getElementById('warranty').value = '';
+                    document.getElementById('tradeIn').value = '';
+                    document.getElementById('coreProductItems').value = '';
+                    document.getElementById('accessoriesItems').value = '';
+                    document.getElementById('warrantyItems').value = '';
+                    document.getElementById('tradeInItems').value = '';
+
+                    const selectedDate = new Date(dateKey);
+                    
+                    // On the 1st of the month, reset the "up to date sales"
+                    if (selectedDate.getDate() === 1) {
+                        document.getElementById('upToDateSales').value = 0;
+                    } else {
+                        // Look for yesterday's data to carry over
+                        const yesterday = new Date(selectedDate);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const yesterdayKey = formatDate(yesterday);
+                        const yesterdaysData = JSON.parse(localStorage.getItem(STORAGE_DATA_PREFIX + yesterdayKey) || 'null');
+                        
+                        // IMPORTANT: Only carry over if yesterday was in the same month.
+                        if (yesterdaysData && yesterday.getMonth() === selectedDate.getMonth()) {
+                            document.getElementById('upToDateSales').value = yesterdaysData.newUpToDateSales;
+                        } else {
+                            // If yesterday's data is missing or from a previous month, start from 0.
+                            document.getElementById('upToDateSales').value = 0;
+                        }
+                    }
+                }
+                
+                // Clear output on date change
+                document.getElementById('output').textContent = 'The report will be displayed here...';
+            }
+
+            // --- Event Listeners ---
+            salesDateInput.addEventListener('change', () => {
+                updateDateFields();
+                loadDataForDate(salesDateInput.value);
+            });
+
+            calculateBtn.addEventListener('click', function() {
+                const salesDate = new Date(document.getElementById('salesDate').value);
+                
+                const data = {
+                    shopName: document.getElementById('shopName').value,
+                    monthlyTarget: parseFloat(document.getElementById('monthlyTarget').value) || 0,
+                    previousUpToDateSales: parseFloat(document.getElementById('upToDateSales').value) || 0,
+                    coreProductSales: parseFloat(document.getElementById('coreProduct').value) || 0,
+                    accessoriesSales: parseFloat(document.getElementById('accessories').value) || 0,
+                    warrantySales: parseFloat(document.getElementById('warranty').value) || 0,
+                    tradeInSales: parseFloat(document.getElementById('tradeIn').value) || 0,
+                    coreProductItems: document.getElementById('coreProductItems').value.trim(),
+                    accessoriesItems: document.getElementById('accessoriesItems').value.trim(),
+                    warrantyItems: document.getElementById('warrantyItems').value.trim(),
+                    tradeInItems: document.getElementById('tradeInItems').value.trim(),
+                    dateKey: formatDate(salesDate)
+                };
+
+                const currentDay = parseInt(document.getElementById('currentDay').value) || 1;
+                const totalDays = parseInt(document.getElementById('totalDays').value) || 30;
+
+                const dailySales = data.coreProductSales + data.accessoriesSales + data.warrantySales + data.tradeInSales;
+                data.newUpToDateSales = data.previousUpToDateSales + dailySales;
+                const upToDatePercent = data.monthlyTarget > 0 ? (data.newUpToDateSales / data.monthlyTarget) * 100 : 0;
+                const estimatedClosing = currentDay > 0 ? (data.newUpToDateSales / currentDay) * totalDays : 0;
+                const estimatedClosingPercent = data.monthlyTarget > 0 ? (estimatedClosing / data.monthlyTarget) * 100 : 0;
+
+                const day = String(salesDate.getDate()).padStart(2, '0');
+                const month = String(salesDate.getMonth() + 1).padStart(2, '0');
+                const year = salesDate.getFullYear();
+                const formattedDisplayDate = `${day}/${month}/${year}`;
+
+                // --- Build sales breakdown string with item lists ---
+                const breakdownParts = [];
+                
+                // Core Product
+                if (data.coreProductSales > 0) {
+                    let part = `Core Product : RM ${formatCurrency(data.coreProductSales)}`;
+                    if (data.coreProductItems) {
+                        part += `\n${data.coreProductItems.split('\n').map(item => item.trim()).join('\n')}`;
+                    }
+                    breakdownParts.push(part);
+                }
+
+                // Accessories
+                if (data.accessoriesSales > 0) {
+                    let part = `Accessories : RM ${formatCurrency(data.accessoriesSales)}`;
+                    if (data.accessoriesItems) {
+                        part += `\n${data.accessoriesItems.split('\n').map(item => item.trim()).join('\n')}`;
+                    }
+                    breakdownParts.push(part);
+                }
+
+                // Warranty
+                if (data.warrantySales > 0) {
+                    let part = `Warranty : RM ${formatCurrency(data.warrantySales)}`;
+                    if (data.warrantyItems) {
+                        part += `\n${data.warrantyItems.split('\n').map(item => item.trim()).join('\n')}`;
+                    }
+                    breakdownParts.push(part);
+                }
+                
+                // Trade In
+                if (data.tradeInSales > 0) {
+                    let part = `Trade In : RM ${formatCurrency(data.tradeInSales)}`;
+                     if (data.tradeInItems) {
+                        part += `\n${data.tradeInItems.split('\n').map(item => item.trim()).join('\n')}`;
+                    }
+                    breakdownParts.push(part);
+                }
+                
+                const salesBreakdown = breakdownParts.join('\n\n');
+
+                const outputText = 
+`${data.shopName.toUpperCase()} ${formattedDisplayDate} Sales : RM ${formatCurrency(dailySales)}
+
+${salesBreakdown}
+
+Target : RM ${formatCurrency(data.monthlyTarget)}
+Up to Date : RM ${formatCurrency(data.newUpToDateSales)} (${upToDatePercent.toFixed(0)}%)
+Estimated Closing : RM ${formatCurrency(estimatedClosing)} (${estimatedClosingPercent.toFixed(0)}%)`;
+
+                document.getElementById('output').textContent = outputText;
+                
+                // Save the calculated data
+                saveData(data);
+            });
+        
+            copyBtn.addEventListener('click', function() {
+                const outputText = document.getElementById('output').textContent;
+                navigator.clipboard.writeText(outputText).then(() => {
+                    copyBtn.textContent = 'Copied Successfully!';
+                    copyBtn.classList.remove('bg-green-600');
+                    copyBtn.classList.add('bg-yellow-500');
+
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copy Text';
+                        copyBtn.classList.remove('bg-yellow-500');
+                        copyBtn.classList.add('bg-green-600');
+                    }, 2000);
+                });
+            });
+
+            // --- Modal Logic ---
+            historyBtn.addEventListener('click', () => {
+                const historyTableBody = document.getElementById('historyTableBody');
+                historyTableBody.innerHTML = ''; // Clear previous content
+                
+                const reports = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith(STORAGE_DATA_PREFIX)) {
+                        reports.push(JSON.parse(localStorage.getItem(key)));
+                    }
+                }
+
+                // Sort by date descending
+                reports.sort((a, b) => new Date(b.dateKey) - new Date(a.dateKey));
+
+                if (reports.length === 0) {
+                    historyTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4">No history found.</td></tr>';
+                } else {
+                    reports.forEach(report => {
+                        const dailySales = report.coreProductSales + report.accessoriesSales + (report.warrantySales || 0) + (report.tradeInSales || 0);
+                        const achievement = report.monthlyTarget > 0 ? (report.newUpToDateSales / report.monthlyTarget) * 100 : 0;
+                        const displayDate = new Date(report.dateKey).toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric'});
+                        
+                        const row = `
+                            <tr class="border-b">
+                                <td class="p-2">${displayDate}</td>
+                                <td class="p-2">${formatCurrency(dailySales)}</td>
+                                <td class="p-2">${formatCurrency(report.newUpToDateSales)}</td>
+                                <td class="p-2">${achievement.toFixed(0)}%</td>
+                            </tr>
+                        `;
+                        historyTableBody.innerHTML += row;
+                    });
+                }
+                
+                historyModal.classList.remove('hidden');
+                setTimeout(() => historyModal.classList.remove('opacity-0'), 10);
+            });
+            
+            function hideModal() {
+                 historyModal.classList.add('opacity-0');
+                 setTimeout(() => historyModal.classList.add('hidden'), 300);
+            }
+
+            closeModalBtn.addEventListener('click', hideModal);
+            historyModal.addEventListener('click', (e) => {
+                if (e.target === historyModal) {
+                    hideModal();
+                }
+            });
+
+            // --- Initial Load ---
+            salesDateInput.value = formatDate(new Date()); // Set today's date
+            updateDateFields();
+            loadDataForDate(salesDateInput.value); // Load data for today
+        });
+    </script>
+
+</body>
+</html>
+
