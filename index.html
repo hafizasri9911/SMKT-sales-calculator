@@ -142,7 +142,7 @@
             </div>
         </div>
         <footer class="text-center mt-6 text-sm text-gray-400">
-            <p>&copy; 2025 Created for Samsung KTCC Mall (Terengganu).</p>
+            <p>&copy; 2024 Created for Samsung KTCC Mall (Terengganu).</p>
         </footer>
     </div>
 
@@ -152,7 +152,7 @@
             <div class="p-4 border-b flex justify-between items-center">
                 <h2 class="text-xl font-bold">Monthly Sales Dashboard</h2>
                 <input type="month" id="historyMonth" class="p-2 border rounded-lg">
-                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-4xl">&times;</button>
             </div>
             <div class="p-4 overflow-y-auto space-y-6">
                 <!-- KPI Cards -->
@@ -541,7 +541,6 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                 const totalDailySales = reports.reduce((sum, r) => sum + ((r.coreProductSales || 0) + (r.accessoriesSales || 0) + (r.warrantySales || 0) + (r.tradeInSales || 0)), 0);
                 const averageDailySales = reports.length > 0 ? totalDailySales / reports.length : 0;
                 
-                // --- Logic for Required Daily Average ---
                 const totalDaysInMonth = new Date(year, month, 0).getDate();
                 const lastDayRecorded = new Date(latestReport.dateKey).getUTCDate();
                 const daysRemaining = totalDaysInMonth - lastDayRecorded;
@@ -575,10 +574,20 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                     this.elements.historyTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-4">No data for this month.</td></tr>';
                     return;
                 }
+                
+                let totalCore = 0, totalAcc = 0, totalWar = 0, totalTradeIn = 0, totalDaily = 0;
+
                 reports.forEach(report => {
                     const [year, month, day] = report.dateKey.split('-').map(Number);
                     const displayDate = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
                     const dailySales = (report.coreProductSales || 0) + (report.accessoriesSales || 0) + (report.warrantySales || 0) + (report.tradeInSales || 0);
+                    
+                    totalCore += report.coreProductSales || 0;
+                    totalAcc += report.accessoriesSales || 0;
+                    totalWar += report.warrantySales || 0;
+                    totalTradeIn += report.tradeInSales || 0;
+                    totalDaily += dailySales;
+
                     const row = `
                         <tr class="border-b">
                             <td class="p-2">${displayDate}</td>
@@ -591,6 +600,19 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                         </tr>`;
                     this.elements.historyTableBody.innerHTML += row;
                 });
+
+                const finalUpToDate = reports.length > 0 ? reports[reports.length - 1].newUpToDateSales : 0;
+                const totalRow = `
+                    <tr class="bg-gray-200 font-bold border-t-2 border-gray-400">
+                        <td class="p-2">Total</td>
+                        <td class="p-2 text-right">${this.formatCurrency(totalCore)}</td>
+                        <td class="p-2 text-right">${this.formatCurrency(totalAcc)}</td>
+                        <td class="p-2 text-right">${this.formatCurrency(totalWar)}</td>
+                        <td class="p-2 text-right">${this.formatCurrency(totalTradeIn)}</td>
+                        <td class="p-2 text-right">${this.formatCurrency(totalDaily)}</td>
+                        <td class="p-2 text-right">${this.formatCurrency(finalUpToDate)}</td>
+                    </tr>`;
+                this.elements.historyTableBody.innerHTML += totalRow;
             },
 
             renderHistoryChart(reports, year, month) {
