@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class=""> <!-- Default to light mode, class 'dark' will be added here -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,54 +10,175 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+        /* Chart.js dark mode adjustments */
+        .dark .chartjs-tooltip {
+            background: rgba(31, 41, 55, 0.8) !important; /* gray-800 with opacity */
+            color: #f3f4f6 !important; /* gray-100 */
+        }
+        .dark .chartjs-tooltip-key {
+            border-color: rgba(255, 255, 255, 0.8) !important;
+        }
+        .dark #salesChart, .dark #categoryPieChart {
+             background-color: #374151; /* gray-700 for chart background */
+        }
+        
         .input-group { margin-bottom: 1rem; }
         .input-group label { display: block; margin-bottom: 0.5rem; color: #4A5568; font-weight: 500; }
+        .dark .input-group label { color: #d1d5db; } /* gray-300 */
+
         .input-group input, .input-group textarea {
             width: 100%;
             padding: 0.75rem;
-            border: 1px solid #E2E8F0;
+            border: 1px solid #E2E8F0; /* gray-200 */
             border-radius: 0.5rem;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, background-color 0.3s, color 0.3s;
+            background-color: #fff; /* white */
+            color: #1f2937; /* gray-800 */
         }
+        .dark .input-group input, .dark .input-group textarea {
+            background-color: #374151; /* gray-700 */
+            border-color: #4b5563; /* gray-600 */
+            color: #f3f4f6; /* gray-100 */
+        }
+         .input-group input::placeholder, .input-group textarea::placeholder {
+             color: #9ca3af; /* gray-400 */
+         }
+         .dark .input-group input::placeholder, .dark .input-group textarea::placeholder {
+             color: #6b7280; /* gray-500 */
+         }
+
+
         .input-group input:focus, .input-group textarea:focus {
             outline: none;
-            border-color: #4299E1;
+            border-color: #4299E1; /* blue-500 */
             box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
         }
+         .dark .input-group input:focus, .dark .input-group textarea:focus {
+            border-color: #60a5fa; /* blue-400 */
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5);
+        }
+        
+         .input-group input[readonly] {
+             background-color: #f3f4f6; /* gray-100 */
+             cursor: not-allowed;
+         }
+         .dark .input-group input[readonly] {
+             background-color: #4b5563; /* gray-600 */
+         }
+
+
         .generated-text {
             white-space: pre-wrap;
-            background-color: #edf2f7;
+            background-color: #edf2f7; /* gray-100 */
             border-radius: 0.5rem;
             padding: 1rem;
             font-family: monospace;
-            color: #2d3748;
-            border: 1px solid #e2e8f0;
+            color: #2d3748; /* gray-800 */
+            border: 1px solid #e2e8f0; /* gray-200 */
             min-height: 200px;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
         }
+         .dark .generated-text {
+            background-color: #1f2937; /* gray-800 */
+            color: #d1d5db; /* gray-300 */
+            border-color: #4b5563; /* gray-600 */
+        }
+
         .modal { transition: opacity 0.3s ease; }
         .toast { transition: opacity 0.5s, transform 0.5s; }
+        
         .kpi-card {
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background-color: #f8fafc; /* slate-50 */
+            border: 1px solid #e2e8f0; /* slate-200 */
             border-left: 4px solid #e2e8f0; /* Default border */
             border-radius: 0.75rem;
             padding: 1rem;
-            transition: border-color 0.3s ease;
+            transition: border-color 0.3s ease, background-color 0.3s;
         }
+         .dark .kpi-card {
+            background-color: #1f2937; /* gray-800 */
+            border-color: #4b5563; /* gray-600 */
+             border-left-color: #4b5563; /* Default border dark */
+         }
         .kpi-card.blue { border-left-color: rgb(59, 130, 246); }
         .kpi-card.orange { border-left-color: rgb(249, 115, 22); }
         .kpi-card.red { border-left-color: rgb(220, 38, 38); }
-    </style>
-</head>
-<body class="bg-gray-50 text-gray-800">
+        .dark .kpi-card.blue { border-left-color: rgb(96, 165, 250); } /* blue-400 */
+        .dark .kpi-card.orange { border-left-color: rgb(251, 146, 60); } /* orange-400 */
+        .dark .kpi-card.red { border-left-color: rgb(248, 113, 113); } /* red-400 */
 
-    <div id="app-container" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-8xl">
-        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+
+        .status-indicator {
+            font-size: 0.75rem;
+            color: #64748b; /* slate-500 */
+            transition: opacity 0.5s;
+        }
+         .dark .status-indicator {
+             color: #94a3b8; /* slate-400 */
+         }
+         
+        /* History Modal Styling */
+        .dark #historyModal .bg-white { background-color: #111827; } /* gray-900 */
+        .dark #historyModal .border-b { border-color: #374151; } /* gray-700 */
+        .dark #historyModal h2, .dark #historyModal h3 { color: #f3f4f6; } /* gray-100 */
+        .dark #historyModal input[type="month"] { background-color: #374151; border-color: #4b5563; color: #f3f4f6; }
+        .dark #historyModal .bg-gray-50 { background-color: #1f2937; } /* gray-800 */
+        .dark #historyModal .bg-gray-100 { background-color: #374151; } /* gray-700 */
+        .dark #historyModal table th { color: #d1d5db; } /* gray-300 */
+        .dark #historyModal table td { color: #9ca3af; } /* gray-400 */
+         .dark #historyModal table .font-bold { color: #e5e7eb; } /* gray-200 */
+        .dark #historyModal .border-b { border-color: #374151; } /* gray-700 */
+        .dark #historyModal .bg-gray-200 { background-color: #4b5563; } /* gray-600 */
+        .dark #historyModal .border-gray-400 { border-color: #6b7280; } /* gray-500 */
+        .dark #historyModal .text-red-500 { color: #f87171; } /* red-400 */
+
+        /* Tailwind utility override for dark scrollbar */
+         .dark ::-webkit-scrollbar-thumb {
+            background-color: #4b5563; /* gray-600 */
+            border-radius: 10px;
+            border: 3px solid #1f2937; /* gray-800 */
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #1f2937; /* gray-800 */
+            border-radius: 10px;
+        }
+         ::-webkit-scrollbar { width: 12px; }
+         ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px;} /* slate-100 */
+         ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; border: 3px solid #f1f5f9; } /* slate-300, slate-100 */
+         ::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; } /* slate-400 */
+         
+    </style>
+    <script>
+      // Apply theme on initial load
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+      // Tailwind config for dark mode
+      tailwind.config = {
+        darkMode: 'class', // Use class strategy
+      }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+
+    <div id="app-container" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-8xl relative">
+       <!-- Dark Mode Toggle Button -->
+        <button id="theme-toggle" type="button" class="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
+            <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+            <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm-.707 10.607a1 1 0 011.414 0l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm-.707 10.607a1 1 0 011.414 0l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+        </button>
+
+        <div class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg">
             
             <header class="mb-8 text-center">
-                <h1 class="text-3xl font-bold text-gray-900">Sales Report Calculator</h1>
-                <p class="text-gray-500 mt-2">Your data is now saved online and accessible from any device.</p>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Sales Report Calculator</h1>
+                 <p class="text-gray-500 dark:text-gray-400 mt-2">data is now saved online and accessible from any device. <span id="save-status" class="status-indicator ml-2"></span></p>
             </header>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -85,122 +206,135 @@
 
                     <div class="input-group">
                         <label for="upToDateSales">Up to Date Sales (Before Today) (RM)</label>
-                        <input type="number" id="upToDateSales" placeholder="Calculated automatically" readonly class="bg-gray-100">
+                        <input type="number" id="upToDateSales" placeholder="Calculated automatically" readonly class="bg-gray-100 dark:bg-gray-600">
                     </div>
                     
                     <div class="input-group">
                         <label for="coreProduct">Core Product Sales (RM)</label>
                         <input type="number" id="coreProduct" placeholder="E.g., 17795.00" step="0.01">
-                        <textarea id="coreProductItems" class="mt-2" rows="2" placeholder="Item list (one per line)..."></textarea>
+                        <textarea id="coreProductItems" class="mt-2" rows="15" placeholder="Item list (one per line)..."></textarea>
                     </div>
 
                     <div class="input-group">
                         <label for="accessories">Accessories Sales (RM)</label>
                         <input type="number" id="accessories" placeholder="E.g., 227.00" step="0.01">
-                        <textarea id="accessoriesItems" class="mt-2" rows="2" placeholder="Item list (one per line)..."></textarea>
+                        <textarea id="accessoriesItems" class="mt-2" rows="15" placeholder="Item list (one per line)..."></textarea>
                     </div>
 
                     <div class="input-group">
                         <label for="warranty">Warranty Sales (RM)</label>
-                        <input type="number" id="warranty" placeholder="Fill if available" step="0.01">
-                        <textarea id="warrantyItems" class="mt-2" rows="2" placeholder="Item list (one per line)..."></textarea>
+                        <input type="number" id="warranty" placeholder="E.g., 17795.00" step="0.01">
+                        <textarea id="warrantyItems" class="mt-2" rows="7" placeholder="Item list (one per line)..."></textarea>
                     </div>
 
                     <div class="input-group">
                         <label for="tradeIn">Trade In Sales (RM)</label>
-                        <input type="number" id="tradeIn" placeholder="Fill if available" step="0.01">
-                        <textarea id="tradeInItems" class="mt-2" rows="2" placeholder="Item list (one per line)..."></textarea>
+                        <input type="number" id="tradeIn" placeholder="E.g., 17795.00" step="0.01">
+                        <textarea id="tradeInItems" class="mt-2" rows="7" placeholder="Item list (one per line)..."></textarea>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div class="input-group">
                             <label for="currentDay">Day</label>
-                            <input type="number" id="currentDay" placeholder="Auto" readonly class="bg-gray-100">
+                            <input type="number" id="currentDay" placeholder="Auto" readonly class="bg-gray-100 dark:bg-gray-600">
                         </div>
                         <div class="input-group">
                             <label for="totalDays">Total Days</label>
-                            <input type="number" id="totalDays" placeholder="Auto" readonly class="bg-gray-100">
+                            <input type="number" id="totalDays" placeholder="Auto" readonly class="bg-gray-100 dark:bg-gray-600">
                         </div>
                     </div>
                     
-                    <button id="saveBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md">
+                    <button id="saveBtn" class="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-md">
                         Save Report
                     </button>
-                    <button id="historyBtn" class="w-full bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-300 shadow-md">
+                    <button id="historyBtn" class="w-full bg-gray-600 hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-md">
                         View History
                     </button>
                 </div>
                 
                 <!-- Output Section -->
                 <div>
-                    <label class="block mb-2 font-medium text-gray-700">Generated Report (Live Preview)</label>
+                    <label class="block mb-2 font-medium text-gray-700 dark:text-gray-300">Generated Report (Live Preview)</label>
                     <div id="output" class="generated-text">The report will be displayed here...</div>
-                    <button id="copyBtn" class="mt-4 w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-300 shadow-md">
+                    <button id="copyBtn" class="mt-4 w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-md">
                         Copy Text
                     </button>
                 </div>
             </div>
         </div>
-        <footer class="text-center mt-6 text-sm text-gray-400">
+        <footer class="text-center mt-6 text-sm text-gray-400 dark:text-gray-500">
             <p>&copy; 2025 Created for Samsung KTCC Mall (Terengganu).</p>
         </footer>
     </div>
 
     <!-- History Modal -->
     <div id="historyModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden opacity-0">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-            <div class="p-4 border-b flex justify-between items-center">
-                <h2 class="text-xl font-bold">Monthly Sales Dashboard</h2>
-                <input type="month" id="historyMonth" class="p-2 border rounded-lg">
-                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-4xl">&times;</button>
+        <!-- Modal content -->
+        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+             <!-- Modal header -->
+            <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                <h2 class="text-xl font-bold dark:text-white">Monthly Sales Dashboard</h2>
+                <input type="month" id="historyMonth" class="p-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white">
+                <button id="closeModalBtn" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white text-3xl">&times;</button>
             </div>
+             <!-- Modal body -->
             <div class="p-4 overflow-y-auto space-y-6">
-                <!-- KPI Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
-                    <div class="kpi-card">
-                        <p class="text-sm text-gray-500">Total Sales</p>
-                        <p id="kpi-total-sales" class="text-2xl font-bold text-blue-600">RM 0.00</p>
+                <!-- KPI & Pie Chart Row -->
+                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- KPI Cards -->
+                    <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-center">
+                         <div class="kpi-card">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Total Sales</p>
+                            <p id="kpi-total-sales" class="text-2xl font-bold text-blue-600 dark:text-blue-400">RM 0.00</p>
+                        </div>
+                        <div class="kpi-card">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Remaining to Baseline</p>
+                            <p id="kpi-remaining-baseline" class="text-2xl font-bold dark:text-white">RM 0.00</p>
+                        </div>
+                        <div class="kpi-card">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Remaining to Target</p>
+                            <p id="kpi-remaining-target" class="text-2xl font-bold dark:text-white">RM 0.00</p>
+                        </div>
+                        <div class="kpi-card">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Average Daily Sales</p>
+                            <p id="kpi-avg-daily" class="text-2xl font-bold text-gray-700 dark:text-gray-300">RM 0.00</p>
+                        </div>
+                        <div class="kpi-card">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Required Daily Average</p>
+                            <p id="kpi-required-avg" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">RM 0.00</p>
+                        </div>
                     </div>
-                    <div class="kpi-card">
-                        <p class="text-sm text-gray-500">Remaining to Baseline</p>
-                        <p id="kpi-remaining-baseline" class="text-2xl font-bold">RM 0.00</p>
-                    </div>
-                    <div class="kpi-card">
-                        <p class="text-sm text-gray-500">Remaining to Target</p>
-                        <p id="kpi-remaining-target" class="text-2xl font-bold">RM 0.00</p>
-                    </div>
-                    <div class="kpi-card">
-                        <p class="text-sm text-gray-500">Average Daily Sales</p>
-                        <p id="kpi-avg-daily" class="text-2xl font-bold text-gray-700">RM 0.00</p>
-                    </div>
-                    <div class="kpi-card">
-                        <p class="text-sm text-gray-500">Required Daily Average</p>
-                        <p id="kpi-required-avg" class="text-2xl font-bold text-indigo-600">RM 0.00</p>
+                     <!-- Pie Chart -->
+                    <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-center">
+                        <h3 class="text-lg font-semibold mb-2 text-center dark:text-white">Category Contribution</h3>
+                         <div style="max-width: 250px; max-height: 250px;">
+                            <canvas id="categoryPieChart"></canvas>
+                        </div>
                     </div>
                 </div>
 
                 <div>
-                    <h3 class="text-lg font-semibold mb-2">Sales Flow</h3>
-                    <div class="bg-gray-50 p-2 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Sales Flow</h3>
+                    <div class="bg-gray-50 dark:bg-gray-800 p-2 rounded-lg">
                         <canvas id="salesChart"></canvas>
                     </div>
                 </div>
                 <div>
-                    <h3 class="text-lg font-semibold mb-2">Daily Breakdown</h3>
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Daily Breakdown</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left">
-                            <thead class="bg-gray-100">
+                            <thead class="bg-gray-100 dark:bg-gray-700">
                                 <tr>
-                                    <th class="p-2">Date</th>
-                                    <th class="p-2 text-right">Core (RM)</th>
-                                    <th class="p-2 text-right">Acc. (RM)</th>
-                                    <th class="p-2 text-right">War. (RM)</th>
-                                    <th class="p-2 text-right">TradeIn (RM)</th>
-                                    <th class="p-2 text-right font-bold">Daily (RM)</th>
-                                    <th class="p-2 text-right font-bold">Up to Date (RM)</th>
+                                    <th class="p-2 dark:text-gray-300">Date</th>
+                                    <th class="p-2 text-right dark:text-gray-300">Core (RM)</th>
+                                    <th class="p-2 text-right dark:text-gray-300">Acc. (RM)</th>
+                                    <th class="p-2 text-right dark:text-gray-300">War. (RM)</th>
+                                    <th class="p-2 text-right dark:text-gray-300">TradeIn (RM)</th>
+                                    <th class="p-2 text-right font-bold dark:text-gray-300">Daily (RM)</th>
+                                    <th class="p-2 text-right font-bold dark:text-gray-300">Up to Date (RM)</th>
                                 </tr>
                             </thead>
-                            <tbody id="historyTableBody"></tbody>
+                            <tbody id="historyTableBody" class="dark:text-gray-400"></tbody>
                         </table>
                     </div>
                 </div>
@@ -225,8 +359,14 @@
             appId: 'sales-calculator-app',
             allReports: [],
             salesChartInstance: null,
+            categoryPieChartInstance: null,
+            autoSaveTimeout: null, // Timer for auto-save
 
             elements: {
+                html: document.documentElement,
+                themeToggleBtn: document.getElementById('theme-toggle'),
+                themeToggleDarkIcon: document.getElementById('theme-toggle-dark-icon'),
+                themeToggleLightIcon: document.getElementById('theme-toggle-light-icon'),
                 container: document.getElementById('app-container'),
                 salesDate: document.getElementById('salesDate'),
                 saveBtn: document.getElementById('saveBtn'),
@@ -236,6 +376,7 @@
                 closeModalBtn: document.getElementById('closeModalBtn'),
                 historyMonth: document.getElementById('historyMonth'),
                 salesChart: document.getElementById('salesChart'),
+                categoryPieChart: document.getElementById('categoryPieChart'),
                 historyTableBody: document.getElementById('historyTableBody'),
                 toast: document.getElementById('toast'),
                 toastMessage: document.getElementById('toast-message'),
@@ -259,6 +400,7 @@
                 kpiRemainingTarget: document.getElementById('kpi-remaining-target'),
                 kpiAvgDaily: document.getElementById('kpi-avg-daily'),
                 kpiRequiredAvg: document.getElementById('kpi-required-avg'),
+                saveStatus: document.getElementById('save-status'), // Save status indicator
             },
 
             async initFirebase() {
@@ -284,18 +426,71 @@
                 }
             },
 
+            // Debounce function
+            debounce(func, delay) {
+                clearTimeout(this.autoSaveTimeout);
+                this.autoSaveTimeout = setTimeout(func, delay);
+            },
+            
+            // --- Theme Toggle Logic ---
+            initThemeToggle() {
+                 // Function to update icon visibility
+                const updateIcons = () => {
+                    if (this.elements.html.classList.contains('dark')) {
+                        this.elements.themeToggleLightIcon.classList.remove('hidden');
+                        this.elements.themeToggleDarkIcon.classList.add('hidden');
+                    } else {
+                        this.elements.themeToggleLightIcon.classList.add('hidden');
+                        this.elements.themeToggleDarkIcon.classList.remove('hidden');
+                    }
+                };
+
+                 // Initial icon state
+                 updateIcons();
+
+                 // Toggle logic
+                 this.elements.themeToggleBtn.addEventListener('click', () => {
+                    // toggle class on html tag
+                    this.elements.html.classList.toggle('dark');
+                    // save preference to local storage
+                    if (this.elements.html.classList.contains('dark')) {
+                        localStorage.theme = 'dark';
+                    } else {
+                        localStorage.theme = 'light';
+                    }
+                     updateIcons(); // Update icons after toggle
+                     
+                     // If history modal is open, redraw charts with updated theme colors
+                     if (!this.elements.historyModal.classList.contains('hidden')) {
+                         this.updateHistoryDashboard(); 
+                     }
+                });
+            },
+            // --- End Theme Toggle Logic ---
+
             bindEvents() {
+                this.initThemeToggle(); // Initialize the theme toggle
+
                 this.elements.salesDate.addEventListener('change', () => {
                     this.updateDateFields();
                     this.loadDataForDate(this.elements.salesDate.value);
                 });
                 
                 const inputsToTrack = ['shopName', 'monthlyTarget', 'baselineTarget', 'coreProduct', 'coreProductItems', 'accessories', 'accessoriesItems', 'warranty', 'warrantyItems', 'tradeIn', 'tradeInItems'];
+                
+                // Attach live update and auto-save listeners
                 inputsToTrack.forEach(id => {
-                    this.elements[id]?.addEventListener('input', () => this.liveUpdateReport());
+                    const element = this.elements[id];
+                    if (element) {
+                        element.addEventListener('input', () => {
+                            this.liveUpdateReport(); 
+                            this.indicateSaving(); // Show "Saving..."
+                            this.debounce(() => this.autoSaveReport(), 2000); // Auto-save after 2 seconds of inactivity
+                        });
+                    }
                 });
 
-                this.elements.saveBtn.addEventListener('click', () => this.saveReport());
+                this.elements.saveBtn.addEventListener('click', () => this.saveReport()); // Manual save
                 this.elements.copyBtn.addEventListener('click', () => this.copyReport());
                 this.elements.historyBtn.addEventListener('click', () => this.showHistory());
                 this.elements.closeModalBtn.addEventListener('click', () => this.hideModal());
@@ -330,8 +525,12 @@
                 const data = this.getCurrentDataFromForm();
                 this.generateReport(data);
             },
+             
+            async autoSaveReport() {
+                await this.saveReport(true); // Pass true to indicate auto-save
+            },
 
-            async saveReport() {
+            async saveReport(isAutoSave = false) {
                 const data = this.getCurrentDataFromForm();
                 try {
                     const reportRef = doc(this.db, `artifacts/${this.appId}/public/data/salesReports/${data.dateKey}`);
@@ -344,12 +543,37 @@
                         baselineTarget: data.baselineTarget
                     }, { merge: true });
 
-                    this.showToast("Report saved successfully!");
+                    this.indicateSaved(); // Show "Saved!"
+                    if (!isAutoSave) {
+                        this.showToast("Report saved successfully!");
+                    }
                 } catch (error) {
                     console.error("Error saving data:", error);
-                    this.showToast("Failed to save report.", false);
+                    this.indicateSaveError(); // Show save error
+                     if (!isAutoSave) {
+                        this.showToast("Failed to save report.", false);
+                    }
                 }
             },
+            
+            // --- Save Status Indicators ---
+            indicateSaving() {
+                this.elements.saveStatus.textContent = '(Saving...)';
+                this.elements.saveStatus.style.opacity = '1';
+                this.elements.saveStatus.style.color = document.documentElement.classList.contains('dark') ? '#9ca3af' : '#64748b'; // Adjust color for dark/light
+            },
+            indicateSaved() {
+                this.elements.saveStatus.textContent = '(Saved)';
+                this.elements.saveStatus.style.opacity = '1';
+                this.elements.saveStatus.style.color = document.documentElement.classList.contains('dark') ? '#34d399' : '#16a34a'; // Adjust color for dark/light
+                 setTimeout(() => { this.elements.saveStatus.style.opacity = '0'; }, 3000);
+            },
+             indicateSaveError() {
+                this.elements.saveStatus.textContent = '(Save Error!)';
+                this.elements.saveStatus.style.opacity = '1';
+                 this.elements.saveStatus.style.color = document.documentElement.classList.contains('dark') ? '#f87171' : '#dc2626'; // Adjust color for dark/light
+            },
+            // --- End Save Status Indicators ---
 
             generateReport(data) {
                 const [year, month, day] = data.dateKey.split('-').map(Number);
@@ -422,7 +646,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                         this.elements.shopName.value = data.shopName || this.elements.shopName.value;
                         this.elements.monthlyTarget.value = data.monthlyTarget || this.elements.monthlyTarget.value;
                         this.elements.baselineTarget.value = data.baselineTarget || this.elements.baselineTarget.value;
-                        this.elements.upToDateSales.value = data.previousUpToDateSales || 0;
+                        this.elements.upToDateSales.value = (data.previousUpToDateSales || 0).toFixed(2);
                         this.elements.coreProduct.value = data.coreProductSales || '';
                         this.elements.coreProductItems.value = data.coreProductItems || '';
                         this.elements.accessories.value = data.accessoriesSales || '';
@@ -436,7 +660,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                         const [year, month, day] = dateKey.split('-').map(Number);
                         
                         if (day === 1) {
-                            this.elements.upToDateSales.value = 0;
+                            this.elements.upToDateSales.value = (0).toFixed(2);
                         } else {
                             const selectedDate = new Date(year, month - 1, day);
                             const yesterday = new Date(selectedDate);
@@ -445,11 +669,11 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                             const yesterdayRef = doc(this.db, `artifacts/${this.appId}/public/data/salesReports/${yesterdayKey}`);
                             const yesterdaySnap = await getDoc(yesterdayRef);
                             
+                            let prevSales = 0;
                             if (yesterdaySnap.exists() && yesterday.getMonth() === selectedDate.getMonth()) {
-                                this.elements.upToDateSales.value = yesterdaySnap.data().newUpToDateSales || 0;
-                            } else {
-                                this.elements.upToDateSales.value = 0;
+                                prevSales = yesterdaySnap.data().newUpToDateSales || 0;
                             }
+                            this.elements.upToDateSales.value = prevSales.toFixed(2);
                         }
                     }
                     this.liveUpdateReport();
@@ -497,7 +721,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
 
                 } catch(error) {
                     console.error("Error fetching history: ", error);
-                    this.elements.historyTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-red-500">Could not load history.</td></tr>';
+                    this.elements.historyTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-red-500 dark:text-red-400">Could not load history.</td></tr>';
                 }
             },
             
@@ -511,6 +735,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                 this.renderHistoryTable(filteredReports);
                 this.renderHistoryChart(filteredReports, year, month);
                 this.updateKpiCards(filteredReports, year, month);
+                this.renderCategoryPieChart(filteredReports);
             },
 
             updateKpiCards(reports, year, month) {
@@ -589,7 +814,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                     totalDaily += dailySales;
 
                     const row = `
-                        <tr class="border-b">
+                        <tr class="border-b dark:border-gray-700">
                             <td class="p-2">${displayDate}</td>
                             <td class="p-2 text-right">${this.formatCurrency(report.coreProductSales)}</td>
                             <td class="p-2 text-right">${this.formatCurrency(report.accessoriesSales)}</td>
@@ -603,7 +828,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
 
                 const finalUpToDate = reports.length > 0 ? reports[reports.length - 1].newUpToDateSales : 0;
                 const totalRow = `
-                    <tr class="bg-gray-200 font-bold border-t-2 border-gray-400">
+                    <tr class="bg-gray-200 dark:bg-gray-600 dark:text-gray-100 font-bold border-t-2 border-gray-400 dark:border-gray-500">
                         <td class="p-2">Total</td>
                         <td class="p-2 text-right">${this.formatCurrency(totalCore)}</td>
                         <td class="p-2 text-right">${this.formatCurrency(totalAcc)}</td>
@@ -616,6 +841,11 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
             },
 
             renderHistoryChart(reports, year, month) {
+                 // Set Chart.js defaults based on theme
+                 Chart.defaults.color = document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'; // gray-400 / gray-500
+                 Chart.defaults.borderColor = document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb'; // gray-600 / gray-200
+
+
                 const daysInMonth = new Date(year, month, 0).getDate();
                 const labels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
                 
@@ -640,8 +870,13 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                 }
                 const ctx = this.elements.salesChart.getContext('2d');
                 const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
-                gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+                 if (document.documentElement.classList.contains('dark')) {
+                     gradient.addColorStop(0, 'rgba(96, 165, 250, 0.5)'); // blue-400
+                     gradient.addColorStop(1, 'rgba(96, 165, 250, 0)');
+                 } else {
+                    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)'); // blue-500
+                    gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+                 }
 
 
                 this.salesChartInstance = new Chart(ctx, {
@@ -652,14 +887,14 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                             {
                                 label: 'Cumulative Sales',
                                 data: cumulativeSalesData,
-                                borderColor: 'rgb(59, 130, 246)',
+                                borderColor: document.documentElement.classList.contains('dark') ? 'rgb(96, 165, 250)' : 'rgb(59, 130, 246)',
                                 backgroundColor: gradient,
                                 fill: true,
                                 tension: 0.4,
-                                pointBackgroundColor: 'rgb(59, 130, 246)',
-                                pointBorderColor: '#fff',
-                                pointHoverBackgroundColor: '#fff',
-                                pointHoverBorderColor: 'rgb(59, 130, 246)',
+                                pointBackgroundColor: document.documentElement.classList.contains('dark') ? 'rgb(96, 165, 250)' : 'rgb(59, 130, 246)',
+                                pointBorderColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                                pointHoverBackgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                                pointHoverBorderColor: document.documentElement.classList.contains('dark') ? 'rgb(96, 165, 250)' : 'rgb(59, 130, 246)',
                                 borderWidth: 2.5,
                                 pointRadius: 3,
                                 pointHoverRadius: 6,
@@ -667,7 +902,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                             {
                                 label: 'Target',
                                 data: Array(daysInMonth).fill(target),
-                                borderColor: 'rgb(22, 163, 74)',
+                                borderColor: document.documentElement.classList.contains('dark') ? 'rgb(52, 211, 153)' : 'rgb(22, 163, 74)', // emerald-400 / green-600
                                 borderDash: [5, 5],
                                 pointRadius: 0,
                                 fill: false,
@@ -676,7 +911,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                              {
                                 label: 'Baseline',
                                 data: Array(daysInMonth).fill(baseline),
-                                borderColor: 'rgb(234, 179, 8)',
+                                borderColor: document.documentElement.classList.contains('dark') ? 'rgb(251, 191, 36)' : 'rgb(234, 179, 8)', // amber-400 / yellow-500
                                 borderDash: [5, 5],
                                 pointRadius: 0,
                                 fill: false,
@@ -686,25 +921,112 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                     },
                     options: {
                         responsive: true,
-                        interaction: {
-                            intersect: false,
-                            mode: 'index',
-                        },
+                        maintainAspectRatio: false,
+                        interaction: { intersect: false, mode: 'index', },
                         scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: '#e5e7eb' },
-                                ticks: { callback: (value) => `RM ${this.formatCurrency(value)}` }
+                            y: { 
+                                beginAtZero: true, 
+                                grid: { color: document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb' }, 
+                                ticks: { 
+                                    color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280',
+                                    callback: (value) => `RM ${this.formatCurrency(value)}` 
+                                } 
                             },
-                            x: { grid: { display: false } }
+                            x: { 
+                                grid: { display: false },
+                                ticks: { color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280' } 
+                            }
                         },
                         plugins: {
-                            legend: { position: 'top' },
-                            tooltip: { callbacks: { label: (context) => `${context.dataset.label}: RM ${this.formatCurrency(context.parsed.y)}` } }
+                            legend: { 
+                                position: 'top',
+                                labels: { color: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#374151' } 
+                            },
+                            tooltip: { 
+                                callbacks: { 
+                                    label: (context) => `${context.dataset.label}: RM ${this.formatCurrency(context.parsed.y)}` 
+                                },
+                                backgroundColor: document.documentElement.classList.contains('dark') ? 'rgba(31, 41, 55, 0.8)' : 'rgba(17, 24, 39, 0.8)', // Adjust tooltip background for theme
+                                titleColor: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#fff',
+                                bodyColor: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#fff',
+                            }
                         }
                     }
                 });
             },
+
+            renderCategoryPieChart(reports) {
+                 if (this.categoryPieChartInstance) {
+                    this.categoryPieChartInstance.destroy();
+                }
+
+                let totalCore = 0, totalAcc = 0, totalWar = 0, totalTradeIn = 0;
+                 reports.forEach(report => {
+                    totalCore += report.coreProductSales || 0;
+                    totalAcc += report.accessoriesSales || 0;
+                    totalWar += report.warrantySales || 0;
+                    totalTradeIn += report.tradeInSales || 0;
+                });
+                
+                const totalSalesAllCategories = totalCore + totalAcc + totalWar + totalTradeIn;
+
+                const ctx = this.elements.categoryPieChart.getContext('2d');
+                if (totalSalesAllCategories <= 0) {
+                     ctx.clearRect(0, 0, this.elements.categoryPieChart.width, this.elements.categoryPieChart.height);
+                     ctx.textAlign = 'center';
+                     ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'; // Adjust text color for theme
+                     ctx.fillText('No sales data for pie chart', this.elements.categoryPieChart.width / 2, this.elements.categoryPieChart.height / 2);
+                    return;
+                }
+
+                
+                this.categoryPieChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Core Product', 'Accessories', 'Warranty', 'Trade In'],
+                        datasets: [{
+                            label: 'Sales Contribution',
+                            data: [totalCore, totalAcc, totalWar, totalTradeIn],
+                            backgroundColor: [
+                                document.documentElement.classList.contains('dark') ? 'rgb(96, 165, 250)' : 'rgb(59, 130, 246)', // Blue
+                                document.documentElement.classList.contains('dark') ? 'rgb(251, 191, 36)' : 'rgb(234, 179, 8)',  // Yellow
+                                document.documentElement.classList.contains('dark') ? 'rgb(52, 211, 153)' : 'rgb(22, 163, 74)',  // Green
+                                document.documentElement.classList.contains('dark') ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)' // Gray
+                            ],
+                            hoverOffset: 8,
+                            borderWidth: 0,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                         maintainAspectRatio: false,
+                        cutout: '70%', 
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { 
+                                    padding: 15, 
+                                    color: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#374151' // Adjust legend color
+                                }
+                            },
+                             tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        const label = context.label || '';
+                                        const value = context.parsed || 0;
+                                        const percentage = totalSalesAllCategories > 0 ? ((value / totalSalesAllCategories) * 100).toFixed(1) : 0;
+                                        return `${label}: RM ${this.formatCurrency(value)} (${percentage}%)`;
+                                    }
+                                },
+                                backgroundColor: document.documentElement.classList.contains('dark') ? 'rgba(31, 41, 55, 0.8)' : 'rgba(17, 24, 39, 0.8)',
+                                titleColor: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#fff',
+                                bodyColor: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#fff',
+                            }
+                        }
+                    }
+                });
+            },
+
 
             hideModal() {
                  this.elements.historyModal.classList.add('opacity-0');
@@ -714,13 +1036,20 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
             showToast(message, isSuccess = true) {
                 this.elements.toastMessage.textContent = message;
                 this.elements.toast.className = 'toast fixed bottom-5 right-5 py-2 px-4 rounded-lg shadow-lg';
-                this.elements.toast.classList.add(isSuccess ? 'bg-green-600' : 'bg-red-600', 'text-white');
+                 // Adjust toast colors for dark mode
+                 const bgColor = isSuccess ? (document.documentElement.classList.contains('dark') ? 'bg-green-700' : 'bg-green-600') : (document.documentElement.classList.contains('dark') ? 'bg-red-700' : 'bg-red-600');
+                 this.elements.toast.classList.add(bgColor, 'text-white');
                 this.elements.toast.classList.remove('opacity-0', 'translate-y-10');
                 setTimeout(() => this.elements.toast.classList.add('opacity-0', 'translate-y-10'), 3000);
             },
 
             showError(message) {
-                this.elements.container.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert"><strong class="font-bold">Application Error!</strong><span class="block sm:inline">${message}</span></div>`;
+                 const errorDiv = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative dark:bg-red-900 dark:border-red-700 dark:text-red-300" role="alert"><strong class="font-bold">Application Error!</strong><span class="block sm:inline">${message}</span></div>`;
+                 if (this.elements.container) {
+                     this.elements.container.innerHTML = errorDiv;
+                 } else {
+                     document.body.innerHTML = errorDiv; // Fallback if container not found
+                 }
             },
 
             formatDate(date) {
@@ -729,9 +1058,12 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
             },
 
             formatCurrency(value, withPrefix = false) {
-                const formatted = (value || 0).toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                // Ensure value is treated as a number before formatting
+                const numericValue = Number(value) || 0;
+                const formatted = numericValue.toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 return withPrefix ? `RM ${formatted}` : formatted;
             },
+
 
             async init() {
                 const isFirebaseReady = await this.initFirebase();
