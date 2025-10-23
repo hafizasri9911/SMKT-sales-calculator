@@ -212,26 +212,33 @@
                     <div class="input-group">
                         <label for="coreProduct">Core Product Sales (RM)</label>
                         <input type="number" id="coreProduct" placeholder="E.g., 17795.00" step="0.01">
-                        <textarea id="coreProductItems" class="mt-2" rows="14" placeholder="Item list (one per line)..."></textarea>
+                        <textarea id="coreProductItems" class="mt-2" rows="10" placeholder="Item list (one per line)..."></textarea>
                     </div>
 
                     <div class="input-group">
                         <label for="accessories">Accessories Sales (RM)</label>
                         <input type="number" id="accessories" placeholder="E.g., 227.00" step="0.01">
-                        <textarea id="accessoriesItems" class="mt-2" rows="14" placeholder="Item list (one per line)..."></textarea>
+                        <textarea id="accessoriesItems" class="mt-2" rows="10" placeholder="Item list (one per line)..."></textarea>
                     </div>
 
                     <div class="input-group">
                         <label for="warranty">Warranty Sales (RM)</label>
-                        <input type="number" id="warranty" placeholder="E.g., 17795.00" step="0.01">
+                        <input type="number" id="warranty" placeholder="Fill if available" step="0.01">
                         <textarea id="warrantyItems" class="mt-2" rows="7" placeholder="Item list (one per line)..."></textarea>
                     </div>
 
                     <div class="input-group">
                         <label for="tradeIn">Trade In Sales (RM)</label>
-                        <input type="number" id="tradeIn" placeholder="E.g., 17795.00" step="0.01">
+                        <input type="number" id="tradeIn" placeholder="Fill if available" step="0.01">
                         <textarea id="tradeInItems" class="mt-2" rows="7" placeholder="Item list (one per line)..."></textarea>
                     </div>
+                    
+                     <div class="input-group">
+                        <label for="demoSales">Demo Sales (RM)</label>
+                        <input type="number" id="demoSales" placeholder="Fill if available" step="0.01">
+                        <textarea id="demoSalesItems" class="mt-2" rows="7" placeholder="Item list (one per line)..."></textarea>
+                    </div>
+
 
                     <div class="grid grid-cols-2 gap-4">
                         <div class="input-group">
@@ -334,6 +341,7 @@
                                     <th class="p-2 text-right dark:text-gray-300">Acc. (RM)</th>
                                     <th class="p-2 text-right dark:text-gray-300">War. (RM)</th>
                                     <th class="p-2 text-right dark:text-gray-300">TradeIn (RM)</th>
+                                    <th class="p-2 text-right dark:text-gray-300">Demo (RM)</th> 
                                     <th class="p-2 text-right font-bold dark:text-gray-300">Daily (RM)</th>
                                     <th class="p-2 text-right font-bold dark:text-gray-300">Up to Date (RM)</th>
                                 </tr>
@@ -397,15 +405,17 @@
                 warrantyItems: document.getElementById('warrantyItems'),
                 tradeIn: document.getElementById('tradeIn'),
                 tradeInItems: document.getElementById('tradeInItems'),
+                demoSales: document.getElementById('demoSales'), // New element
+                demoSalesItems: document.getElementById('demoSalesItems'), // New element
                 currentDay: document.getElementById('currentDay'),
                 totalDays: document.getElementById('totalDays'),
                 kpiTotalSales: document.getElementById('kpi-total-sales'),
                 kpiRemainingBaseline: document.getElementById('kpi-remaining-baseline'),
                 kpiRemainingTarget: document.getElementById('kpi-remaining-target'),
                 kpiAvgDaily: document.getElementById('kpi-avg-daily'),
-                kpiRequiredBaseline: document.getElementById('kpi-required-baseline'), // New KPI element
-                kpiRequiredTarget: document.getElementById('kpi-required-target'), // Renamed KPI element
-                saveStatus: document.getElementById('save-status'), // Save status indicator
+                kpiRequiredBaseline: document.getElementById('kpi-required-baseline'), 
+                kpiRequiredTarget: document.getElementById('kpi-required-target'), 
+                saveStatus: document.getElementById('save-status'), 
             },
 
             async initFirebase() {
@@ -467,7 +477,7 @@
                     this.loadDataForDate(this.elements.salesDate.value);
                 });
                 
-                const inputsToTrack = ['shopName', 'monthlyTarget', 'baselineTarget', 'coreProduct', 'coreProductItems', 'accessories', 'accessoriesItems', 'warranty', 'warrantyItems', 'tradeIn', 'tradeInItems'];
+                const inputsToTrack = ['shopName', 'monthlyTarget', 'baselineTarget', 'coreProduct', 'coreProductItems', 'accessories', 'accessoriesItems', 'warranty', 'warrantyItems', 'tradeIn', 'tradeInItems', 'demoSales', 'demoSalesItems']; // Added demoSales
                 inputsToTrack.forEach(id => {
                     const element = this.elements[id];
                     if (element) {
@@ -499,13 +509,15 @@
                     accessoriesSales: parseFloat(this.elements.accessories.value) || 0,
                     warrantySales: parseFloat(this.elements.warranty.value) || 0,
                     tradeInSales: parseFloat(this.elements.tradeIn.value) || 0,
+                    demoSales: parseFloat(this.elements.demoSales.value) || 0, // Added demoSales
                     coreProductItems: this.elements.coreProductItems.value.trim(),
                     accessoriesItems: this.elements.accessoriesItems.value.trim(),
                     warrantyItems: this.elements.warrantyItems.value.trim(),
                     tradeInItems: this.elements.tradeInItems.value.trim(),
+                    demoSalesItems: this.elements.demoSalesItems.value.trim(), // Added demoSalesItems
                     dateKey: this.elements.salesDate.value
                 };
-                const dailySales = data.coreProductSales + data.accessoriesSales + data.warrantySales + data.tradeInSales;
+                const dailySales = data.coreProductSales + data.accessoriesSales + data.warrantySales + data.tradeInSales + data.demoSales; // Added demoSales
                 data.newUpToDateSales = data.previousUpToDateSales + dailySales;
                 return data;
             },
@@ -567,7 +579,7 @@
                 const currentDay = day;
                 const totalDays = new Date(year, month, 0).getDate();
                 
-                const dailySales = data.coreProductSales + data.accessoriesSales + data.warrantySales + data.tradeInSales;
+                const dailySales = data.coreProductSales + data.accessoriesSales + data.warrantySales + data.tradeInSales + data.demoSales; // Added demoSales
                 const upToDatePercent = data.monthlyTarget > 0 ? (data.newUpToDateSales / data.monthlyTarget) * 100 : 0;
                 const estimatedClosing = currentDay > 0 ? (data.newUpToDateSales / currentDay) * totalDays : 0;
                 const estimatedClosingPercent = data.monthlyTarget > 0 ? (estimatedClosing / data.monthlyTarget) * 100 : 0;
@@ -587,6 +599,7 @@
                     { title: 'Accessories', sales: data.accessoriesSales, items: data.accessoriesItems },
                     { title: 'Warranty', sales: data.warrantySales, items: data.warrantyItems },
                     { title: 'Trade In', sales: data.tradeInSales, items: data.tradeInItems },
+                    { title: 'Demo Sales', sales: data.demoSales, items: data.demoSalesItems }, // Added demoSales
                 ];
 
                 categories.forEach(cat => {
@@ -642,6 +655,8 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                         this.elements.warrantyItems.value = data.warrantyItems || '';
                         this.elements.tradeIn.value = data.tradeInSales || '';
                         this.elements.tradeInItems.value = data.tradeInItems || '';
+                        this.elements.demoSales.value = data.demoSales || ''; // Load demoSales
+                        this.elements.demoSalesItems.value = data.demoSalesItems || ''; // Load demoSalesItems
                     } else {
                         this.resetDailyInputs();
                         const [year, month, day] = dateKey.split('-').map(Number);
@@ -670,8 +685,10 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
             },
 
             resetDailyInputs() {
-                ['coreProduct', 'coreProductItems', 'accessories', 'accessoriesItems', 'warranty', 'warrantyItems', 'tradeIn', 'tradeInItems'].forEach(id => {
-                    this.elements[id].value = '';
+                ['coreProduct', 'coreProductItems', 'accessories', 'accessoriesItems', 'warranty', 'warrantyItems', 'tradeIn', 'tradeInItems', 'demoSales', 'demoSalesItems'].forEach(id => { // Added demoSales
+                    if(this.elements[id]) {
+                       this.elements[id].value = '';
+                    }
                 });
             },
 
@@ -693,7 +710,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
             async showHistory() {
                 this.elements.historyModal.classList.remove('hidden');
                 setTimeout(() => this.elements.historyModal.classList.remove('opacity-0'), 10);
-                this.elements.historyTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-4">Loading history...</td></tr>';
+                this.elements.historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center p-4">Loading history...</td></tr>'; // Increased colspan
                 
                 try {
                     const reportsCol = collection(this.db, `artifacts/${this.appId}/public/data/salesReports`);
@@ -708,7 +725,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
 
                 } catch(error) {
                     console.error("Error fetching history: ", error);
-                    this.elements.historyTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-red-500 dark:text-red-400">Could not load history.</td></tr>';
+                    this.elements.historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center p-4 text-red-500 dark:text-red-400">Could not load history.</td></tr>'; // Increased colspan
                 }
             },
             
@@ -753,7 +770,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                 const remainingToTarget = Math.max(0, target - totalSales);
                 const remainingToBaseline = Math.max(0, baseline - totalSales);
                 
-                const totalDailySales = reports.reduce((sum, r) => sum + ((r.coreProductSales || 0) + (r.accessoriesSales || 0) + (r.warrantySales || 0) + (r.tradeInSales || 0)), 0);
+                const totalDailySales = reports.reduce((sum, r) => sum + ((r.coreProductSales || 0) + (r.accessoriesSales || 0) + (r.warrantySales || 0) + (r.tradeInSales || 0) + (r.demoSales || 0)), 0); // Added demoSales
                 const averageDailySales = reports.length > 0 ? totalDailySales / reports.length : 0;
                 
                 const totalDaysInMonth = new Date(year, month, 0).getDate();
@@ -794,21 +811,22 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
             renderHistoryTable(reports) {
                 this.elements.historyTableBody.innerHTML = ''; 
                 if (reports.length === 0) {
-                    this.elements.historyTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-4">No data for this month.</td></tr>';
+                    this.elements.historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center p-4">No data for this month.</td></tr>'; // Increased colspan
                     return;
                 }
                 
-                let totalCore = 0, totalAcc = 0, totalWar = 0, totalTradeIn = 0, totalDaily = 0;
+                let totalCore = 0, totalAcc = 0, totalWar = 0, totalTradeIn = 0, totalDemo = 0, totalDaily = 0; // Added totalDemo
 
                 reports.forEach(report => {
                     const [year, month, day] = report.dateKey.split('-').map(Number);
                     const displayDate = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
-                    const dailySales = (report.coreProductSales || 0) + (report.accessoriesSales || 0) + (report.warrantySales || 0) + (report.tradeInSales || 0);
+                    const dailySales = (report.coreProductSales || 0) + (report.accessoriesSales || 0) + (report.warrantySales || 0) + (report.tradeInSales || 0) + (report.demoSales || 0); // Added demoSales
                     
                     totalCore += report.coreProductSales || 0;
                     totalAcc += report.accessoriesSales || 0;
                     totalWar += report.warrantySales || 0;
                     totalTradeIn += report.tradeInSales || 0;
+                    totalDemo += report.demoSales || 0; // Added demoSales
                     totalDaily += dailySales;
 
                     const row = `
@@ -818,6 +836,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                             <td class="p-2 text-right">${this.formatCurrency(report.accessoriesSales)}</td>
                             <td class="p-2 text-right">${this.formatCurrency(report.warrantySales)}</td>
                             <td class="p-2 text-right">${this.formatCurrency(report.tradeInSales)}</td>
+                            <td class="p-2 text-right">${this.formatCurrency(report.demoSales)}</td> <!-- Added demoSales column -->
                             <td class="p-2 text-right font-bold">${this.formatCurrency(dailySales)}</td>
                             <td class="p-2 text-right font-bold">${this.formatCurrency(report.newUpToDateSales)}</td>
                         </tr>`;
@@ -832,6 +851,7 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                         <td class="p-2 text-right">${this.formatCurrency(totalAcc)}</td>
                         <td class="p-2 text-right">${this.formatCurrency(totalWar)}</td>
                         <td class="p-2 text-right">${this.formatCurrency(totalTradeIn)}</td>
+                        <td class="p-2 text-right">${this.formatCurrency(totalDemo)}</td> <!-- Added demoSales total -->
                         <td class="p-2 text-right">${this.formatCurrency(totalDaily)}</td>
                         <td class="p-2 text-right">${this.formatCurrency(finalUpToDate)}</td>
                     </tr>`;
@@ -965,15 +985,16 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                     this.categoryPieChartInstance.destroy();
                 }
 
-                let totalCore = 0, totalAcc = 0, totalWar = 0, totalTradeIn = 0;
+                let totalCore = 0, totalAcc = 0, totalWar = 0, totalTradeIn = 0, totalDemo = 0; // Added totalDemo
                  reports.forEach(report => {
                     totalCore += report.coreProductSales || 0;
                     totalAcc += report.accessoriesSales || 0;
                     totalWar += report.warrantySales || 0;
                     totalTradeIn += report.tradeInSales || 0;
+                    totalDemo += report.demoSales || 0; // Added demoSales
                 });
                 
-                const totalSalesAllCategories = totalCore + totalAcc + totalWar + totalTradeIn;
+                const totalSalesAllCategories = totalCore + totalAcc + totalWar + totalTradeIn + totalDemo; // Added demoSales
 
                 const ctx = this.elements.categoryPieChart.getContext('2d');
                 if (totalSalesAllCategories <= 0) {
@@ -988,15 +1009,16 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                 this.categoryPieChartInstance = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
-                        labels: ['Core Product', 'Accessories', 'Warranty', 'Trade In'],
+                        labels: ['Core Product', 'Accessories', 'Warranty', 'Trade In', 'Demo Sales'], // Added demoSales
                         datasets: [{
                             label: 'Sales Contribution',
-                            data: [totalCore, totalAcc, totalWar, totalTradeIn],
+                            data: [totalCore, totalAcc, totalWar, totalTradeIn, totalDemo], // Added demoSales
                             backgroundColor: [
                                 document.documentElement.classList.contains('dark') ? 'rgb(96, 165, 250)' : 'rgb(59, 130, 246)', // Blue
                                 document.documentElement.classList.contains('dark') ? 'rgb(251, 191, 36)' : 'rgb(234, 179, 8)',  // Yellow
                                 document.documentElement.classList.contains('dark') ? 'rgb(52, 211, 153)' : 'rgb(22, 163, 74)',  // Green
-                                document.documentElement.classList.contains('dark') ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)' // Gray
+                                document.documentElement.classList.contains('dark') ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)', // Gray
+                                document.documentElement.classList.contains('dark') ? 'rgb(167, 139, 250)' : 'rgb(139, 92, 246)' // Purple for Demo
                             ],
                             hoverOffset: 8,
                             borderWidth: 0,
