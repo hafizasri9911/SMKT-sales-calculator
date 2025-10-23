@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales Report Calculator</title>
+    <title>SMKT Sales Report Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +23,7 @@
             border-color: rgba(255, 255, 255, 0.8) !important;
         }
         .dark #salesChart, .dark #categoryPieChart {
-             background-color: #374151; /* gray-700 for chart background */
+             background-color: transparent; /* Make chart background transparent */
         }
         
         .input-group { margin-bottom: 1rem; }
@@ -177,7 +177,7 @@
         <div class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg">
             
             <header class="mb-8 text-center">
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Sales Report Calculator</h1>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">SMKT Sales Report Generate</h1>
                  <p class="text-gray-500 dark:text-gray-400 mt-2">data is now saved online and accessible from any device. <span id="save-status" class="status-indicator ml-2"></span></p>
             </header>
 
@@ -212,13 +212,13 @@
                     <div class="input-group">
                         <label for="coreProduct">Core Product Sales (RM)</label>
                         <input type="number" id="coreProduct" placeholder="E.g., 17795.00" step="0.01">
-                        <textarea id="coreProductItems" class="mt-2" rows="15" placeholder="Item list (one per line)..."></textarea>
+                        <textarea id="coreProductItems" class="mt-2" rows="14" placeholder="Item list (one per line)..."></textarea>
                     </div>
 
                     <div class="input-group">
                         <label for="accessories">Accessories Sales (RM)</label>
                         <input type="number" id="accessories" placeholder="E.g., 227.00" step="0.01">
-                        <textarea id="accessoriesItems" class="mt-2" rows="15" placeholder="Item list (one per line)..."></textarea>
+                        <textarea id="accessoriesItems" class="mt-2" rows="14" placeholder="Item list (one per line)..."></textarea>
                     </div>
 
                     <div class="input-group">
@@ -299,9 +299,13 @@
                             <p class="text-sm text-gray-500 dark:text-gray-400">Average Daily Sales</p>
                             <p id="kpi-avg-daily" class="text-2xl font-bold text-gray-700 dark:text-gray-300">RM 0.00</p>
                         </div>
+                         <div class="kpi-card">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Required Daily Baseline</p>
+                            <p id="kpi-required-baseline" class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">RM 0.00</p>
+                        </div>
                         <div class="kpi-card">
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Required Daily Average</p>
-                            <p id="kpi-required-avg" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">RM 0.00</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Required Daily Target</p>
+                            <p id="kpi-required-target" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">RM 0.00</p>
                         </div>
                     </div>
                      <!-- Pie Chart -->
@@ -399,7 +403,8 @@
                 kpiRemainingBaseline: document.getElementById('kpi-remaining-baseline'),
                 kpiRemainingTarget: document.getElementById('kpi-remaining-target'),
                 kpiAvgDaily: document.getElementById('kpi-avg-daily'),
-                kpiRequiredAvg: document.getElementById('kpi-required-avg'),
+                kpiRequiredBaseline: document.getElementById('kpi-required-baseline'), // New KPI element
+                kpiRequiredTarget: document.getElementById('kpi-required-target'), // Renamed KPI element
                 saveStatus: document.getElementById('save-status'), // Save status indicator
             },
 
@@ -434,7 +439,6 @@
             
             // --- Theme Toggle Logic ---
             initThemeToggle() {
-                 // Function to update icon visibility
                 const updateIcons = () => {
                     if (this.elements.html.classList.contains('dark')) {
                         this.elements.themeToggleLightIcon.classList.remove('hidden');
@@ -444,32 +448,19 @@
                         this.elements.themeToggleDarkIcon.classList.remove('hidden');
                     }
                 };
-
-                 // Initial icon state
                  updateIcons();
-
-                 // Toggle logic
                  this.elements.themeToggleBtn.addEventListener('click', () => {
-                    // toggle class on html tag
                     this.elements.html.classList.toggle('dark');
-                    // save preference to local storage
-                    if (this.elements.html.classList.contains('dark')) {
-                        localStorage.theme = 'dark';
-                    } else {
-                        localStorage.theme = 'light';
-                    }
-                     updateIcons(); // Update icons after toggle
-                     
-                     // If history modal is open, redraw charts with updated theme colors
+                    localStorage.theme = this.elements.html.classList.contains('dark') ? 'dark' : 'light';
+                     updateIcons(); 
                      if (!this.elements.historyModal.classList.contains('hidden')) {
                          this.updateHistoryDashboard(); 
                      }
                 });
             },
-            // --- End Theme Toggle Logic ---
 
             bindEvents() {
-                this.initThemeToggle(); // Initialize the theme toggle
+                this.initThemeToggle(); 
 
                 this.elements.salesDate.addEventListener('change', () => {
                     this.updateDateFields();
@@ -477,20 +468,18 @@
                 });
                 
                 const inputsToTrack = ['shopName', 'monthlyTarget', 'baselineTarget', 'coreProduct', 'coreProductItems', 'accessories', 'accessoriesItems', 'warranty', 'warrantyItems', 'tradeIn', 'tradeInItems'];
-                
-                // Attach live update and auto-save listeners
                 inputsToTrack.forEach(id => {
                     const element = this.elements[id];
                     if (element) {
                         element.addEventListener('input', () => {
                             this.liveUpdateReport(); 
-                            this.indicateSaving(); // Show "Saving..."
-                            this.debounce(() => this.autoSaveReport(), 2000); // Auto-save after 2 seconds of inactivity
+                            this.indicateSaving(); 
+                            this.debounce(() => this.autoSaveReport(), 2000); 
                         });
                     }
                 });
 
-                this.elements.saveBtn.addEventListener('click', () => this.saveReport()); // Manual save
+                this.elements.saveBtn.addEventListener('click', () => this.saveReport()); 
                 this.elements.copyBtn.addEventListener('click', () => this.copyReport());
                 this.elements.historyBtn.addEventListener('click', () => this.showHistory());
                 this.elements.closeModalBtn.addEventListener('click', () => this.hideModal());
@@ -527,7 +516,7 @@
             },
              
             async autoSaveReport() {
-                await this.saveReport(true); // Pass true to indicate auto-save
+                await this.saveReport(true); 
             },
 
             async saveReport(isAutoSave = false) {
@@ -543,37 +532,35 @@
                         baselineTarget: data.baselineTarget
                     }, { merge: true });
 
-                    this.indicateSaved(); // Show "Saved!"
+                    this.indicateSaved(); 
                     if (!isAutoSave) {
                         this.showToast("Report saved successfully!");
                     }
                 } catch (error) {
                     console.error("Error saving data:", error);
-                    this.indicateSaveError(); // Show save error
+                    this.indicateSaveError(); 
                      if (!isAutoSave) {
                         this.showToast("Failed to save report.", false);
                     }
                 }
             },
             
-            // --- Save Status Indicators ---
             indicateSaving() {
                 this.elements.saveStatus.textContent = '(Saving...)';
                 this.elements.saveStatus.style.opacity = '1';
-                this.elements.saveStatus.style.color = document.documentElement.classList.contains('dark') ? '#9ca3af' : '#64748b'; // Adjust color for dark/light
+                this.elements.saveStatus.style.color = document.documentElement.classList.contains('dark') ? '#9ca3af' : '#64748b'; 
             },
             indicateSaved() {
                 this.elements.saveStatus.textContent = '(Saved)';
                 this.elements.saveStatus.style.opacity = '1';
-                this.elements.saveStatus.style.color = document.documentElement.classList.contains('dark') ? '#34d399' : '#16a34a'; // Adjust color for dark/light
+                this.elements.saveStatus.style.color = document.documentElement.classList.contains('dark') ? '#34d399' : '#16a34a'; 
                  setTimeout(() => { this.elements.saveStatus.style.opacity = '0'; }, 3000);
             },
              indicateSaveError() {
                 this.elements.saveStatus.textContent = '(Save Error!)';
                 this.elements.saveStatus.style.opacity = '1';
-                 this.elements.saveStatus.style.color = document.documentElement.classList.contains('dark') ? '#f87171' : '#dc2626'; // Adjust color for dark/light
+                 this.elements.saveStatus.style.color = document.documentElement.classList.contains('dark') ? '#f87171' : '#dc2626'; 
             },
-            // --- End Save Status Indicators ---
 
             generateReport(data) {
                 const [year, month, day] = data.dateKey.split('-').map(Number);
@@ -746,10 +733,13 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
 
                 if(reports.length === 0) {
                     this.elements.kpiTotalSales.textContent = this.formatCurrency(0, true);
-                    this.elements.kpiRemainingBaseline.textContent = this.formatCurrency(parseFloat(this.elements.baselineTarget.value) || 0, true);
-                    this.elements.kpiRemainingTarget.textContent = this.formatCurrency(parseFloat(this.elements.monthlyTarget.value) || 0, true);
+                    const currentBaseline = parseFloat(this.elements.baselineTarget.value) || 0;
+                    const currentTarget = parseFloat(this.elements.monthlyTarget.value) || 0;
+                    this.elements.kpiRemainingBaseline.textContent = this.formatCurrency(currentBaseline, true);
+                    this.elements.kpiRemainingTarget.textContent = this.formatCurrency(currentTarget, true);
                     this.elements.kpiAvgDaily.textContent = this.formatCurrency(0, true);
-                    this.elements.kpiRequiredAvg.textContent = this.formatCurrency(0, true);
+                    this.elements.kpiRequiredBaseline.textContent = this.formatCurrency(0, true);
+                    this.elements.kpiRequiredTarget.textContent = this.formatCurrency(0, true);
                     kpiBaselineCard.classList.add('red');
                     kpiTargetCard.classList.add('red');
                     return;
@@ -769,16 +759,24 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
                 const totalDaysInMonth = new Date(year, month, 0).getDate();
                 const lastDayRecorded = new Date(latestReport.dateKey).getUTCDate();
                 const daysRemaining = totalDaysInMonth - lastDayRecorded;
-                let requiredDailyAverage = 0;
+                
+                let requiredDailyTarget = 0;
                 if (remainingToTarget > 0 && daysRemaining > 0) {
-                    requiredDailyAverage = remainingToTarget / daysRemaining;
+                    requiredDailyTarget = remainingToTarget / daysRemaining;
                 }
+                
+                let requiredDailyBaseline = 0;
+                 if (remainingToBaseline > 0 && daysRemaining > 0) {
+                    requiredDailyBaseline = remainingToBaseline / daysRemaining;
+                }
+
 
                 this.elements.kpiTotalSales.textContent = this.formatCurrency(totalSales, true);
                 this.elements.kpiRemainingBaseline.textContent = this.formatCurrency(remainingToBaseline, true);
                 this.elements.kpiRemainingTarget.textContent = this.formatCurrency(remainingToTarget, true);
                 this.elements.kpiAvgDaily.textContent = this.formatCurrency(averageDailySales, true);
-                this.elements.kpiRequiredAvg.textContent = this.formatCurrency(requiredDailyAverage, true);
+                this.elements.kpiRequiredBaseline.textContent = this.formatCurrency(requiredDailyBaseline, true);
+                this.elements.kpiRequiredTarget.textContent = this.formatCurrency(requiredDailyTarget, true);
                 
                 if (baseline > 0) {
                     if (totalSales >= baseline) kpiBaselineCard.classList.add('blue');
@@ -842,17 +840,24 @@ ${indicatorLine}Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} 
 
             renderHistoryChart(reports, year, month) {
                  // Set Chart.js defaults based on theme
-                 Chart.defaults.color = document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'; // gray-400 / gray-500
-                 Chart.defaults.borderColor = document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb'; // gray-600 / gray-200
+                 Chart.defaults.color = document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'; 
+                 Chart.defaults.borderColor = document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb'; 
 
 
                 const daysInMonth = new Date(year, month, 0).getDate();
+                 // Add safety check for daysInMonth
+                 if (!Number.isInteger(daysInMonth) || daysInMonth <= 0 || daysInMonth > 31) {
+                    console.error("Invalid daysInMonth calculated:", daysInMonth, "for year:", year, "month:", month);
+                    return; // Stop chart rendering if calculation is wrong
+                 }
                 const labels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
                 
                 const cumulativeSalesData = new Array(daysInMonth).fill(null);
                 reports.forEach(report => {
                     const day = new Date(report.dateKey).getUTCDate();
-                    cumulativeSalesData[day - 1] = report.newUpToDateSales;
+                     if (day >= 1 && day <= daysInMonth) { // Ensure day is within valid range
+                         cumulativeSalesData[day - 1] = report.newUpToDateSales;
+                     }
                 });
                 
                 for (let i = 1; i < cumulativeSalesData.length; i++) {
