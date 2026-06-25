@@ -403,6 +403,32 @@
                         </table>
                     </div>
                 </div>
+                <!-- Product Ranking -->
+                <div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
+                        <h3 class="text-lg font-semibold dark:text-white">📊 Product Ranking</h3>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <div class="flex items-center gap-1.5">
+                                <label for="coreGroupMode" class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">Group:</label>
+                                <select id="coreGroupMode" class="text-sm p-1.5 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer">
+                                    <option value="storage">By Storage</option>
+                                    <option value="model">By Model</option>
+                                    <option value="color">By Colour</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <label for="rankingSortMode" class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">Sort:</label>
+                                <select id="rankingSortMode" class="text-sm p-1.5 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer">
+                                    <option value="qty-desc">Qty ↓</option>
+                                    <option value="qty-asc">Qty ↑</option>
+                                    <option value="name-asc">A → Z</option>
+                                    <option value="name-desc">Z → A</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="productRankingContainer" class="space-y-4"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -416,7 +442,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const SalesApp = {
             db: null,
@@ -446,6 +472,9 @@
                 categoryPieChart: document.getElementById('categoryPieChart'),
                 dailyBreakdownChart: document.getElementById('dailyBreakdownChart'), // Canvas for new chart
                 historyTableBody: document.getElementById('historyTableBody'),
+                productRankingContainer: document.getElementById('productRankingContainer'),
+                coreGroupMode: document.getElementById('coreGroupMode'),
+                rankingSortMode: document.getElementById('rankingSortMode'),
                 toast: document.getElementById('toast'),
                 toastMessage: document.getElementById('toast-message'),
                 output: document.getElementById('output'),
@@ -555,6 +584,16 @@
                     if (e.target === this.elements.historyModal) this.hideModal();
                 });
                 this.elements.historyMonth.addEventListener('change', () => this.updateHistoryDashboard());
+                this.elements.coreGroupMode.addEventListener('change', () => {
+                    if (!this.elements.historyModal.classList.contains('hidden')) {
+                        this.renderProductRanking(this._currentFilteredReports || []);
+                    }
+                });
+                this.elements.rankingSortMode.addEventListener('change', () => {
+                    if (!this.elements.historyModal.classList.contains('hidden')) {
+                        this.renderProductRanking(this._currentFilteredReports || []);
+                    }
+                });
             },
 
             getCurrentDataFromForm() {
@@ -757,28 +796,25 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                             this.elements.upToDateSales.value = (0).toFixed(2);
                              console.log("First day of month, setting upToDateSales to 0."); // Log first day
                         } else {
-                            const selectedDate = new Date(year, month - 1, day);
-                            const yesterday = new Date(selectedDate);
-                            yesterday.setDate(selectedDate.getDate() - 1);
-                            const yesterdayKey = this.formatDate(yesterday);
-                             if (!yesterdayKey) {
-                                console.error("Failed to generate yesterdayKey!"); // Log 4
-                                this.elements.upToDateSales.value = (0).toFixed(2);
+                            // Backtrack: query the latest report before this date in the same month
+                            const monthPrefix = `${year}-${String(month).padStart(2, '0')}`;
+                            const reportsCol = collection(this.db, `artifacts/${this.appId}/public/data/salesReports`);
+                            const q = query(
+                                reportsCol,
+                                where('dateKey', '>=', `${monthPrefix}-01`),
+                                where('dateKey', '<', dateKey),
+                                orderBy('dateKey', 'desc'),
+                                limit(1)
+                            );
+                            const snap = await getDocs(q);
+                            let prevSales = 0;
+                            if (!snap.empty) {
+                                prevSales = snap.docs[0].data().newUpToDateSales || 0;
+                                console.log("Found previous sales on", snap.docs[0].data().dateKey, ":", prevSales);
                             } else {
-                                const yesterdayPath = `artifacts/${this.appId}/public/data/salesReports/${yesterdayKey}`;
-                                console.log("Getting yesterday's report doc:", yesterdayPath); // Log 5
-                                const yesterdayRef = doc(this.db, yesterdayPath);
-                                const yesterdaySnap = await getDoc(yesterdayRef);
-                            
-                                let prevSales = 0;
-                                if (yesterdaySnap.exists() && yesterday.getMonth() === selectedDate.getMonth()) {
-                                    prevSales = yesterdaySnap.data().newUpToDateSales || 0;
-                                     console.log("Found yesterday's sales:", prevSales); // Log found yesterday sales
-                                } else {
-                                     console.log("Yesterday's report not found or from different month."); // Log yesterday not found
-                                }
-                                this.elements.upToDateSales.value = prevSales.toFixed(2);
-                             }
+                                console.log("No previous report found in this month before", dateKey);
+                            }
+                            this.elements.upToDateSales.value = prevSales.toFixed(2);
                         }
                     }
                     this.liveUpdateReport(); // This will also call updateAchievementIndicator
@@ -853,11 +889,13 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                 });
                  console.log("Filtered reports for dashboard:", filteredReports.length); // Log filtered count
 
+                this._currentFilteredReports = filteredReports; // Cache for dropdown re-render
                 this.renderHistoryTable(filteredReports);
                 this.renderHistoryChart(filteredReports, year, month);
                 this.updateKpiCards(filteredReports, year, month);
                 this.renderCategoryPieChart(filteredReports);
                  this.renderDailyBreakdownChart(filteredReports, year, month); // Render new chart
+                 this.renderProductRanking(filteredReports); // Render product ranking
             },
 
             updateKpiCards(reports, year, month) {
@@ -1278,6 +1316,142 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                  });
              },
              // --- End New Daily Breakdown Chart ---
+
+            renderProductRanking(reports) {
+                const container = this.elements.productRankingContainer;
+                container.innerHTML = '';
+
+                if (reports.length === 0) {
+                    container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-4">No data for this month.</p>';
+                    return;
+                }
+
+                const categoryConfig = [
+                    { field: 'coreProductItems', label: 'Core Product', color: 'blue' },
+                    { field: 'accessoriesItems', label: 'Accessories', color: 'yellow' },
+                    { field: 'warrantyItems', label: 'Warranty', color: 'green' },
+                    { field: 'tradeInItems', label: 'Trade In', color: 'gray' },
+                    { field: 'demoSalesItems', label: 'Demo Sales', color: 'purple' },
+                ];
+
+                const headerColors = {
+                    'blue': 'bg-blue-600 dark:bg-blue-700',
+                    'yellow': 'bg-yellow-500 dark:bg-yellow-600',
+                    'green': 'bg-green-600 dark:bg-green-700',
+                    'gray': 'bg-gray-600 dark:bg-gray-500',
+                    'purple': 'bg-purple-600 dark:bg-purple-700',
+                };
+
+                let hasAnyItems = false;
+
+                categoryConfig.forEach(cat => {
+                    // Collect items for this category across all reports
+                    const itemMap = {};
+                    const groupMode = this.elements.coreGroupMode.value; // 'model', 'storage', 'color'
+
+                    reports.forEach(report => {
+                        const lines = (report[cat.field] || '').split('\n');
+                        lines.forEach(line => {
+                            const trimmed = line.trim();
+                            if (!trimmed) return;
+
+                            // Parse quantity prefix: "2-Samsung..." or "2 - Samsung..." → qty=2
+                            let qty = 1;
+                            let itemText = trimmed;
+                            const qtyMatch = trimmed.match(/^(\d+)\s*[-]\s*(.+)/);
+                            if (qtyMatch) {
+                                qty = parseInt(qtyMatch[1], 10) || 1;
+                                itemText = qtyMatch[2].trim();
+                            }
+
+                            let displayName = itemText;
+
+                            // Apply grouping logic for Core Product only
+                            if (cat.field === 'coreProductItems') {
+                                if (groupMode === 'model') {
+                                    // Strip color (after last ' - ') and storage spec '(...)'
+                                    if (displayName.includes(' - ')) {
+                                        displayName = displayName.substring(0, displayName.lastIndexOf(' - ')).trim();
+                                    }
+                                    displayName = displayName.replace(/\s*\([^)]*\)/g, '').trim();
+                                } else if (groupMode === 'storage') {
+                                    // Strip color only (after last ' - '), keep storage
+                                    if (displayName.includes(' - ')) {
+                                        displayName = displayName.substring(0, displayName.lastIndexOf(' - ')).trim();
+                                    }
+                                }
+                                // 'color' mode: keep as-is
+                            }
+
+                            const key = displayName.toLowerCase();
+                            if (!itemMap[key]) {
+                                itemMap[key] = { name: displayName, count: 0 };
+                            }
+                            itemMap[key].count += qty;
+                        });
+                    });
+
+                    const sortMode = this.elements.rankingSortMode.value; // 'qty-desc', 'qty-asc', 'name-asc', 'name-desc'
+                    let sorted;
+                    if (sortMode === 'name-asc') {
+                        sorted = Object.values(itemMap).sort((a, b) => a.name.localeCompare(b.name, 'ms'));
+                    } else if (sortMode === 'name-desc') {
+                        sorted = Object.values(itemMap).sort((a, b) => b.name.localeCompare(a.name, 'ms'));
+                    } else if (sortMode === 'qty-asc') {
+                        sorted = Object.values(itemMap).sort((a, b) => a.count - b.count);
+                    } else {
+                        sorted = Object.values(itemMap).sort((a, b) => b.count - a.count);
+                    }
+                    if (sorted.length === 0) return;
+
+                    hasAnyItems = true;
+                    let totalQty = sorted.reduce((sum, item) => sum + item.count, 0);
+
+                    // Build category section
+                    let rows = '';
+                    sorted.forEach((item, index) => {
+                        rows += `
+                            <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                <td class="p-2 text-gray-400 dark:text-gray-500 w-10">${index + 1}</td>
+                                <td class="p-2 font-medium">${item.name}</td>
+                                <td class="p-2 text-right font-bold w-16">${item.count}</td>
+                            </tr>`;
+                    });
+
+                    // Total row
+                    rows += `
+                        <tr class="bg-gray-100 dark:bg-gray-700 font-bold border-t-2 border-gray-300 dark:border-gray-600">
+                            <td class="p-2" colspan="2">${sorted.length} unique items</td>
+                            <td class="p-2 text-right">${totalQty}</td>
+                        </tr>`;
+
+                    const section = `
+                        <div class="border dark:border-gray-700 rounded-lg overflow-hidden">
+                            <div class="${headerColors[cat.color]} text-white px-3 py-2 font-semibold text-sm flex justify-between items-center">
+                                <span>${cat.label}</span>
+                                <span class="text-xs font-normal opacity-80">${totalQty} unit</span>
+                            </div>
+                            <div class="overflow-x-auto max-h-72 overflow-y-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                                        <tr>
+                                            <th class="p-2 text-gray-500 dark:text-gray-400 w-10">#</th>
+                                            <th class="p-2 text-gray-500 dark:text-gray-400">Item Name</th>
+                                            <th class="p-2 text-right text-gray-500 dark:text-gray-400 w-16">Qty</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="dark:text-gray-300">${rows}</tbody>
+                                </table>
+                            </div>
+                        </div>`;
+
+                    container.innerHTML += section;
+                });
+
+                if (!hasAnyItems) {
+                    container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-4">No item data recorded.</p>';
+                }
+            },
 
 
             hideModal() {
