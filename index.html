@@ -121,20 +121,16 @@
              color: #94a3b8; /* slate-400 */
          }
          
-        /* History Modal Styling */
-        .dark #historyModal .bg-white { background-color: #111827; } /* gray-900 */
-        .dark #historyModal .border-b { border-color: #374151; } /* gray-700 */
-        .dark #historyModal h2, .dark #historyModal h3 { color: #f3f4f6; } /* gray-100 */
-        .dark #historyModal input[type="month"] { background-color: #374151; border-color: #4b5563; color: #f3f4f6; }
-        .dark #historyModal .bg-gray-50 { background-color: #1f2937; } /* gray-800 */
-        .dark #historyModal .bg-gray-100 { background-color: #374151; } /* gray-700 */
-        .dark #historyModal table th { color: #d1d5db; } /* gray-300 */
-        .dark #historyModal table td { color: #9ca3af; } /* gray-400 */
-         .dark #historyModal table .font-bold { color: #e5e7eb; } /* gray-200 */
-        .dark #historyModal .border-b { border-color: #374151; } /* gray-700 */
-        .dark #historyModal .bg-gray-200 { background-color: #4b5563; } /* gray-600 */
-        .dark #historyModal .border-gray-400 { border-color: #6b7280; } /* gray-500 */
-        .dark #historyModal .text-red-500 { color: #f87171; } /* red-400 */
+        /* Dashboard Styling */
+        .dark #dashboardSection input[type="month"] { background-color: #374151; border-color: #4b5563; color: #f3f4f6; }
+        .dark #dashboardSection .bg-gray-50 { background-color: #1f2937; } /* gray-800 */
+        .dark #dashboardSection .bg-gray-100 { background-color: #374151; } /* gray-700 */
+        .dark #dashboardSection table th { color: #d1d5db; } /* gray-300 */
+        .dark #dashboardSection table td { color: #9ca3af; } /* gray-400 */
+         .dark #dashboardSection table .font-bold { color: #e5e7eb; } /* gray-200 */
+        .dark #dashboardSection .bg-gray-200 { background-color: #4b5563; } /* gray-600 */
+        .dark #dashboardSection .border-gray-400 { border-color: #6b7280; } /* gray-500 */
+        .dark #dashboardSection .text-red-500 { color: #f87171; } /* red-400 */
 
         /* Tailwind utility override for dark scrollbar */
          .dark ::-webkit-scrollbar-thumb {
@@ -291,9 +287,7 @@
                     <button id="saveBtn" class="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-md">
                         Save Report
                     </button>
-                    <button id="historyBtn" class="w-full bg-gray-600 hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-md">
-                        View History
-                    </button>
+
                 </div>
                 
                 <!-- Output Section -->
@@ -309,25 +303,16 @@
                 </div>
             </div>
         </div>
-        <footer class="text-center mt-6 text-sm text-gray-400 dark:text-gray-500">
-            <p>&copy; 2025 Created for Samsung KTCC Mall (Terengganu).</p>
-        </footer>
-    </div>
 
-    <!-- History Modal -->
-    <div id="historyModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden opacity-0">
-        <!-- Modal content -->
-        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-             <!-- Modal header -->
-            <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                <h2 class="text-xl font-bold dark:text-white">Monthly Sales Dashboard</h2>
-                <input type="month" id="historyMonth" class="p-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white">
-                <button id="closeModalBtn" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white text-3xl">&times;</button>
+        <!-- Dashboard Section (inline) -->
+        <div id="dashboardSection" class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg mt-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Monthly Sales Dashboard</h2>
+                <input type="month" id="historyMonth" class="p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-white">
             </div>
-             <!-- Modal body -->
-            <div class="p-4 overflow-y-auto space-y-6">
+            <div class="space-y-6">
                 <!-- KPI & Pie Chart Row -->
-                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- KPI Cards -->
                     <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-center">
                          <div class="kpi-card">
@@ -366,7 +351,6 @@
 
                 <div>
                     <h3 class="text-lg font-semibold mb-2 dark:text-white">Sales Flow</h3>
-                     <!-- Chart Container for Scrolling -->
                      <div class="chart-container">
                         <div class="chart-wrapper">
                              <canvas id="salesChart"></canvas>
@@ -376,7 +360,6 @@
                  <!-- Daily Breakdown Chart -->
                  <div>
                     <h3 class="text-lg font-semibold mb-2 dark:text-white">Daily Sales Breakdown</h3>
-                     <!-- Chart Container for Scrolling -->
                      <div class="chart-container">
                         <div class="chart-wrapper">
                             <canvas id="dailyBreakdownChart"></canvas>
@@ -394,7 +377,7 @@
                                     <th class="p-2 text-right dark:text-gray-300">Acc. (RM)</th>
                                     <th class="p-2 text-right dark:text-gray-300">War. (RM)</th>
                                     <th class="p-2 text-right dark:text-gray-300">TradeIn (RM)</th>
-                                    <th class="p-2 text-right dark:text-gray-300">Demo (RM)</th> 
+                                    <th class="p-2 text-right dark:text-gray-300">Demo (RM)</th>
                                     <th class="p-2 text-right font-bold dark:text-gray-300">Daily (RM)</th>
                                     <th class="p-2 text-right font-bold dark:text-gray-300">Up to Date (RM)</th>
                                 </tr>
@@ -431,6 +414,10 @@
                 </div>
             </div>
         </div>
+
+        <footer class="text-center mt-6 text-sm text-gray-400 dark:text-gray-500">
+            <p>&copy; 2025 Created for Samsung KTCC Mall (Terengganu).</p>
+        </footer>
     </div>
 
     <!-- Toast Notification -->
@@ -464,9 +451,7 @@
                 salesDate: document.getElementById('salesDate'),
                 saveBtn: document.getElementById('saveBtn'),
                 copyBtn: document.getElementById('copyBtn'),
-                historyBtn: document.getElementById('historyBtn'),
-                historyModal: document.getElementById('historyModal'),
-                closeModalBtn: document.getElementById('closeModalBtn'),
+                dashboardSection: document.getElementById('dashboardSection'),
                 historyMonth: document.getElementById('historyMonth'),
                 salesChart: document.getElementById('salesChart'),
                 categoryPieChart: document.getElementById('categoryPieChart'),
@@ -550,9 +535,7 @@
                     this.elements.html.classList.toggle('dark');
                     localStorage.theme = this.elements.html.classList.contains('dark') ? 'dark' : 'light';
                      updateIcons(); 
-                     if (!this.elements.historyModal.classList.contains('hidden')) {
-                         this.updateHistoryDashboard(); 
-                     }
+                     this.updateHistoryDashboard(); 
                 });
             },
 
@@ -578,21 +561,12 @@
 
                 this.elements.saveBtn.addEventListener('click', () => this.saveReport()); 
                 this.elements.copyBtn.addEventListener('click', () => this.copyReport());
-                this.elements.historyBtn.addEventListener('click', () => this.showHistory());
-                this.elements.closeModalBtn.addEventListener('click', () => this.hideModal());
-                this.elements.historyModal.addEventListener('click', (e) => {
-                    if (e.target === this.elements.historyModal) this.hideModal();
-                });
                 this.elements.historyMonth.addEventListener('change', () => this.updateHistoryDashboard());
                 this.elements.coreGroupMode.addEventListener('change', () => {
-                    if (!this.elements.historyModal.classList.contains('hidden')) {
-                        this.renderProductRanking(this._currentFilteredReports || []);
-                    }
+                    this.renderProductRanking(this._currentFilteredReports || []);
                 });
                 this.elements.rankingSortMode.addEventListener('change', () => {
-                    if (!this.elements.historyModal.classList.contains('hidden')) {
-                        this.renderProductRanking(this._currentFilteredReports || []);
-                    }
+                    this.renderProductRanking(this._currentFilteredReports || []);
                 });
             },
 
@@ -652,6 +626,7 @@
                     this.indicateSaved(); 
                     if (!isAutoSave) {
                         this.showToast("Report saved successfully!");
+                        await this.loadDashboard(); // Refresh dashboard after save
                     }
                 } catch (error) {
                     console.error("Error saving data:", error); // Log detailed error
@@ -847,32 +822,32 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                 });
             },
 
-            async showHistory() {
-                this.elements.historyModal.classList.remove('hidden');
-                setTimeout(() => this.elements.historyModal.classList.remove('opacity-0'), 10);
-                this.elements.historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center p-4">Loading history...</td></tr>'; // Increased colspan
+            async loadDashboard() {
+                this.elements.historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center p-4">Loading data...</td></tr>';
                  if (!this.db) {
-                     console.error("Firestore not initialized. Cannot show history.");
+                     console.error("Firestore not initialized. Cannot load dashboard.");
                       this.elements.historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center p-4 text-red-500 dark:text-red-400">Error: Database not connected.</td></tr>';
                      return;
                  }
                 
                 try {
-                    console.log("Fetching history..."); // Log history fetch start
+                    console.log("Fetching dashboard data...");
                     const reportsCol = collection(this.db, `artifacts/${this.appId}/public/data/salesReports`);
                     const querySnapshot = await getDocs(query(reportsCol));
                     this.allReports = [];
                     querySnapshot.forEach(doc => this.allReports.push(doc.data()));
                     this.allReports.sort((a, b) => new Date(a.dateKey) - new Date(b.dateKey));
-                    console.log("Fetched reports:", this.allReports.length); // Log report count
+                    console.log("Fetched reports:", this.allReports.length);
                     
                     const today = new Date();
-                    this.elements.historyMonth.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+                    if (!this.elements.historyMonth.value) {
+                        this.elements.historyMonth.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+                    }
                     this.updateHistoryDashboard();
 
                 } catch(error) {
-                    console.error("Error fetching history: ", error); // Log detailed error
-                    this.elements.historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center p-4 text-red-500 dark:text-red-400">Could not load history. Check console for details.</td></tr>'; // Increased colspan
+                    console.error("Error fetching dashboard data: ", error);
+                    this.elements.historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center p-4 text-red-500 dark:text-red-400">Could not load data. Check console for details.</td></tr>';
                 }
             },
             
@@ -1454,10 +1429,7 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
             },
 
 
-            hideModal() {
-                 this.elements.historyModal.classList.add('opacity-0');
-                 setTimeout(() => this.elements.historyModal.classList.add('hidden'), 300);
-            },
+
 
             showToast(message, isSuccess = true) {
                 this.elements.toastMessage.textContent = message;
@@ -1498,6 +1470,7 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                     this.elements.salesDate.value = this.formatDate(new Date());
                     this.updateDateFields();
                     await this.loadDataForDate(this.elements.salesDate.value);
+                    await this.loadDashboard();
                 }
             }
         };
