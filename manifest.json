@@ -1,0 +1,23 @@
+{
+  "name": "SMKT Sales Dashboard",
+  "short_name": "SMKT Sales",
+  "description": "Premium Sales Calculator & Tracker for SMKT",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#1f2937",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
