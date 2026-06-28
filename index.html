@@ -396,6 +396,63 @@
             border-color: #60a5fa;
         }
 
+        /* Tooltip styling for heatmap */
+        .tooltip-custom {
+            position: absolute;
+            background: rgba(17, 24, 39, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 50;
+            white-space: nowrap;
+            transform: translate(-50%, -120%);
+            display: none;
+        }
+        
+        /* Heatmap Styles */
+        .heatmap-container {
+            display: flex;
+            justify-content: center;
+            overflow-x: auto;
+            padding-bottom: 1rem;
+            scrollbar-width: thin;
+        }
+        .heatmap-grid {
+            display: grid;
+            grid-template-rows: repeat(7, 1fr);
+            grid-auto-flow: column;
+            gap: 4px;
+            margin: 0 auto;
+        }
+        .heatmap-cell {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            background-color: #ebedf0; /* gray-200 */
+            transition: all 0.2s;
+            position: relative;
+            cursor: pointer;
+        }
+        .dark .heatmap-cell {
+            background-color: #374151; /* gray-700 */
+        }
+        /* Heatmap intensity colors (Light) */
+        .heatmap-cell[data-level="1"] { background-color: #9be9a8; }
+        .heatmap-cell[data-level="2"] { background-color: #40c463; }
+        .heatmap-cell[data-level="3"] { background-color: #30a14e; }
+        .heatmap-cell[data-level="4"] { background-color: #216e39; }
+        /* Heatmap intensity colors (Dark) */
+        .dark .heatmap-cell[data-level="1"] { background-color: #0e4429; }
+        .dark .heatmap-cell[data-level="2"] { background-color: #006d32; }
+        .dark .heatmap-cell[data-level="3"] { background-color: #26a641; }
+        .dark .heatmap-cell[data-level="4"] { background-color: #39d353; }
+        
+        .heatmap-cell:hover {
+            transform: scale(1.2);
+            z-index: 10;
+        }
     </style>
     <script>
       // Apply theme on initial load
@@ -587,7 +644,7 @@
                 <!-- Month-over-Month Comparison -->
                 <div id="momSection" class="hidden">
                     <h3 class="text-lg font-semibold mb-2 dark:text-white">📊 Month-over-Month</h3>
-                    <div id="momContent" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+                    <div id="momContent" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></div>
                 </div>
 
                 <!-- Best / Worst Day -->
@@ -595,6 +652,7 @@
                     <h3 class="text-lg font-semibold mb-2 dark:text-white">🏆 Best & Worst Day</h3>
                     <div id="bestWorstContent" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                 </div>
+
 
                 <div>
                     <h3 class="text-lg font-semibold mb-2 dark:text-white">Sales Flow</h3>
@@ -656,9 +714,37 @@
                                     <option value="name-desc">Z → A</option>
                                 </select>
                             </div>
+                            <div class="flex items-center gap-1.5">
+                                <label for="rankingCompareMode" class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">Compare:</label>
+                                <select id="rankingCompareMode" class="text-sm p-1.5 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer">
+                                    <option value="none">None</option>
+                                    <option value="prev-month">Prev Month</option>
+                                    <option value="prev-year">Prev Year</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div id="productRankingContainer" class="space-y-4"></div>
+                </div>
+
+                <!-- Heatmap Section -->
+                <div id="heatmapSection" class="mt-8">
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white flex items-center justify-between">
+                        <span>🗓️ Annual Sales Heatmap</span>
+                        <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 font-normal">
+                            <span>Less</span>
+                            <div class="w-3 h-3 bg-[#ebedf0] dark:bg-gray-700 rounded-sm"></div>
+                            <div class="w-3 h-3 bg-[#9be9a8] dark:bg-[#0e4429] rounded-sm"></div>
+                            <div class="w-3 h-3 bg-[#40c463] dark:bg-[#006d32] rounded-sm"></div>
+                            <div class="w-3 h-3 bg-[#30a14e] dark:bg-[#26a641] rounded-sm"></div>
+                            <div class="w-3 h-3 bg-[#216e39] dark:bg-[#39d353] rounded-sm"></div>
+                            <span>More</span>
+                        </div>
+                    </h3>
+                    <div class="heatmap-container bg-white dark:bg-gray-800 px-4 pb-4 pt-12 rounded-lg border dark:border-gray-700 relative">
+                        <div id="heatmapTooltip" class="tooltip-custom"></div>
+                        <div id="heatmapGrid" class="heatmap-grid"></div>
+                    </div>
                 </div>
 
                 <!-- Year-to-Date Summary -->
@@ -682,16 +768,14 @@
             <p id="confirmModalMessage" class="text-gray-600 dark:text-gray-400 mb-4">Are you sure you want to delete this report?</p>
             <div class="flex gap-3 justify-end">
                 <button id="confirmModalCancel" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Cancel</button>
-                <button id="confirmModalConfirm" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition">Delete</button>
-            </div>
+                <button id="confirmModalConfirm" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition">Delete</button>    </div>
         </div>
     </div>
 
     <!-- Toast Notification -->
-    <div id="toast" class="toast fixed bottom-5 right-5 bg-gray-800 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transform translate-y-10">
-        <p id="toast-message"></p>
+    <div id="toast" class="toast fixed bottom-5 right-5 bg-green-600 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 pointer-events-none translate-y-10 z-50">
+        <span id="toastMessage">Success!</span>
     </div>
-
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -729,8 +813,9 @@
                 productRankingContainer: document.getElementById('productRankingContainer'),
                 coreGroupMode: document.getElementById('coreGroupMode'),
                 rankingSortMode: document.getElementById('rankingSortMode'),
+                rankingCompareMode: document.getElementById('rankingCompareMode'),
                 toast: document.getElementById('toast'),
-                toastMessage: document.getElementById('toast-message'),
+                toastMessage: document.getElementById('toastMessage'),
                 output: document.getElementById('output'),
                 achievementIndicator: document.getElementById('achievement-indicator'), // New element for indicator
                 shopName: document.getElementById('shopName'),
@@ -776,6 +861,9 @@
                 confirmModalMessage: document.getElementById('confirmModalMessage'),
                 confirmModalCancel: document.getElementById('confirmModalCancel'),
                 confirmModalConfirm: document.getElementById('confirmModalConfirm'),
+                // Heatmap
+                heatmapGrid: document.getElementById('heatmapGrid'),
+                heatmapTooltip: document.getElementById('heatmapTooltip'),
             },
 
             async initFirebase() {
@@ -855,6 +943,9 @@
                     this.renderProductRanking(this._currentFilteredReports || []);
                 });
                 this.elements.rankingSortMode.addEventListener('change', () => {
+                    this.renderProductRanking(this._currentFilteredReports || []);
+                });
+                this.elements.rankingCompareMode.addEventListener('change', () => {
                     this.renderProductRanking(this._currentFilteredReports || []);
                 });
 
@@ -1213,6 +1304,7 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                  this.renderMonthOverMonth(year, month);
                  this.renderBestWorstDay(filteredReports);
                  this.renderYtdSummary(year);
+                 this.renderHeatmap(this.allReports, year);
             },
 
             updateKpiCards(reports, year, month) {
@@ -1291,11 +1383,11 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                 }
                 
                 let totalCore = 0, totalAcc = 0, totalWar = 0, totalTradeIn = 0, totalDemo = 0, totalDaily = 0; // Added totalDemo
-
+                let rowsHtml = '';
                 reports.forEach(report => {
                     const [year, month, day] = report.dateKey.split('-').map(Number);
                     const displayDate = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
-                    const dailySales = (report.coreProductSales || 0) + (report.accessoriesSales || 0) + (report.warrantySales || 0) + (report.tradeInSales || 0) + (report.demoSales || 0); // Added demoSales
+                    const dailySales = (report.coreProductSales || 0) + (report.accessoriesSales || 0) + (report.warrantySales || 0) + (report.tradeInSales || 0) + (report.demoSales || 0);
                     
                     totalCore += report.coreProductSales || 0;
                     totalAcc += report.accessoriesSales || 0;
@@ -1304,7 +1396,7 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                     totalDemo += report.demoSales || 0; // Added demoSales
                     totalDaily += dailySales;
 
-                    const row = `
+                    rowsHtml += `
                         <tr class="border-b dark:border-gray-700">
                             <td class="p-2">${displayDate}</td>
                             <td class="p-2 text-right">${this.formatCurrency(report.coreProductSales)}</td>
@@ -1320,15 +1412,6 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                                 </button>
                             </td>
                         </tr>`;
-                    this.elements.historyTableBody.innerHTML += row;
-                });
-
-                // Attach delete listeners
-                document.querySelectorAll('.delete-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const dateKey = e.currentTarget.getAttribute('data-delete');
-                        this.deleteReport(dateKey);
-                    });
                 });
 
                 const finalUpToDate = reports.length > 0 ? reports[reports.length - 1].newUpToDateSales : 0;
@@ -1344,7 +1427,16 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                         <td class="p-2 text-right">${this.formatCurrency(finalUpToDate)}</td>
                         <td class="p-2"></td>
                     </tr>`;
-                this.elements.historyTableBody.innerHTML += totalRow;
+                
+                this.elements.historyTableBody.innerHTML = rowsHtml + totalRow;
+
+                // Attach delete listeners
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const dateKey = e.currentTarget.getAttribute('data-delete');
+                        this.deleteReport(dateKey);
+                    });
+                });
             },
 
             renderHistoryChart(reports, year, month) {
@@ -1685,6 +1777,26 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                     return;
                 }
 
+                const compareMode = this.elements.rankingCompareMode.value; // 'none', 'prev-month', 'prev-year'
+                let compareReports = [];
+                
+                if (compareMode !== 'none' && reports.length > 0) {
+                    const currentMonthDateStr = reports[0].dateKey; // format: 'YYYY-MM-DD'
+                    let [y, m] = currentMonthDateStr.split('-').map(Number);
+                    
+                    if (compareMode === 'prev-month') {
+                        m = m === 1 ? 12 : m - 1;
+                        y = m === 12 ? y - 1 : y;
+                    } else if (compareMode === 'prev-year') {
+                        y = y - 1;
+                    }
+                    
+                    compareReports = this.allReports.filter(r => {
+                        const [ry, rm] = r.dateKey.split('-').map(Number);
+                        return ry === y && rm === m;
+                    });
+                }
+
                 const categoryConfig = [
                     { field: 'coreProductItems', label: 'Core Product', color: 'blue' },
                     { field: 'accessoriesItems', label: 'Accessories', color: 'yellow' },
@@ -1702,19 +1814,16 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                 };
 
                 let hasAnyItems = false;
+                const groupMode = this.elements.coreGroupMode.value; // 'model', 'storage', 'color'
 
-                categoryConfig.forEach(cat => {
-                    // Collect items for this category across all reports
-                    const itemMap = {};
-                    const groupMode = this.elements.coreGroupMode.value; // 'model', 'storage', 'color'
-
-                    reports.forEach(report => {
-                        const lines = (report[cat.field] || '').split('\n');
+                const parseItems = (targetReports, field) => {
+                    const map = {};
+                    targetReports.forEach(report => {
+                        const lines = (report[field] || '').split('\n');
                         lines.forEach(line => {
                             const trimmed = line.trim();
                             if (!trimmed) return;
 
-                            // Parse quantity prefix: "2-Samsung..." or "2 - Samsung..." → qty=2
                             let qty = 1;
                             let itemText = trimmed;
                             const qtyMatch = trimmed.match(/^(\d+)\s*[-]\s*(.+)/);
@@ -1723,72 +1832,141 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                                 itemText = qtyMatch[2].trim();
                             }
 
-                            let displayName = itemText;
+                            if (itemText === '-') return;
 
-                            // Apply grouping logic for Core Product only
-                            if (cat.field === 'coreProductItems') {
+                            let displayName = itemText;
+                            if (field === 'coreProductItems') {
                                 if (groupMode === 'model') {
-                                    // Strip color (after last ' - ') and storage spec '(...)'
                                     if (displayName.includes(' - ')) {
                                         displayName = displayName.substring(0, displayName.lastIndexOf(' - ')).trim();
                                     }
                                     displayName = displayName.replace(/\s*\([^)]*\)/g, '').trim();
                                 } else if (groupMode === 'storage') {
-                                    // Strip color only (after last ' - '), keep storage
                                     if (displayName.includes(' - ')) {
                                         displayName = displayName.substring(0, displayName.lastIndexOf(' - ')).trim();
                                     }
                                 }
-                                // 'color' mode: keep as-is
                             }
-
+                            
                             const key = displayName.toLowerCase();
-                            if (!itemMap[key]) {
-                                itemMap[key] = { name: displayName, count: 0 };
-                            }
-                            itemMap[key].count += qty;
+                            if (!map[key]) map[key] = { name: displayName, count: 0 };
+                            map[key].count += qty;
                         });
+                    });
+                    return map;
+                };
+
+                categoryConfig.forEach(cat => {
+                    const currMap = parseItems(reports, cat.field);
+                    const prevMap = parseItems(compareReports, cat.field);
+                    
+                    // Unified map
+                    const unifiedMap = {};
+                    Object.values(currMap).forEach(item => {
+                        const key = item.name.toLowerCase();
+                        unifiedMap[key] = { name: item.name, curr: item.count, prev: 0 };
+                    });
+                    Object.values(prevMap).forEach(item => {
+                        const key = item.name.toLowerCase();
+                        if (!unifiedMap[key]) {
+                            unifiedMap[key] = { name: item.name, curr: 0, prev: item.count };
+                        } else {
+                            unifiedMap[key].prev = item.count;
+                        }
                     });
 
                     const sortMode = this.elements.rankingSortMode.value; // 'qty-desc', 'qty-asc', 'name-asc', 'name-desc'
                     let sorted;
                     if (sortMode === 'name-asc') {
-                        sorted = Object.values(itemMap).sort((a, b) => a.name.localeCompare(b.name, 'ms'));
+                        sorted = Object.values(unifiedMap).sort((a, b) => a.name.localeCompare(b.name, 'ms'));
                     } else if (sortMode === 'name-desc') {
-                        sorted = Object.values(itemMap).sort((a, b) => b.name.localeCompare(a.name, 'ms'));
+                        sorted = Object.values(unifiedMap).sort((a, b) => b.name.localeCompare(a.name, 'ms'));
                     } else if (sortMode === 'qty-asc') {
-                        sorted = Object.values(itemMap).sort((a, b) => a.count - b.count);
+                        sorted = Object.values(unifiedMap).sort((a, b) => a.curr - b.curr);
                     } else {
-                        sorted = Object.values(itemMap).sort((a, b) => b.count - a.count);
+                        sorted = Object.values(unifiedMap).sort((a, b) => b.curr - a.curr);
                     }
                     if (sorted.length === 0) return;
 
                     hasAnyItems = true;
-                    let totalQty = sorted.reduce((sum, item) => sum + item.count, 0);
+                    let totalCurrQty = sorted.reduce((sum, item) => sum + item.curr, 0);
+                    let totalPrevQty = sorted.reduce((sum, item) => sum + item.prev, 0);
 
-                    // Build category section
+                    const isCompare = compareMode !== 'none';
+                    
                     let rows = '';
                     sorted.forEach((item, index) => {
+                        let diffHtml = '';
+                        if (isCompare) {
+                            const diff = item.curr - item.prev;
+                            let badgeClass = 'text-gray-400';
+                            let diffIcon = '';
+                            let diffText = '-';
+                            if (diff > 0) { 
+                                badgeClass = 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 px-1.5 py-0.5 rounded-md text-xs'; 
+                                diffIcon = '↑'; 
+                                diffText = diff;
+                            } else if (diff < 0) { 
+                                badgeClass = 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400 px-1.5 py-0.5 rounded-md text-xs'; 
+                                diffIcon = '↓'; 
+                                diffText = Math.abs(diff);
+                            }
+                            diffHtml = `
+                                <td class="p-2 text-right w-16 text-gray-500 dark:text-gray-400">${item.prev}</td>
+                                <td class="p-2 text-right w-16 font-semibold"><span class="${badgeClass}">${diffIcon} ${diffText}</span></td>
+                            `;
+                        }
+
                         rows += `
                             <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                                 <td class="p-2 text-gray-400 dark:text-gray-500 w-10">${index + 1}</td>
                                 <td class="p-2 font-medium">${item.name}</td>
-                                <td class="p-2 text-right font-bold w-16">${item.count}</td>
+                                <td class="p-2 text-right font-bold w-16">${item.curr}</td>
+                                ${diffHtml}
                             </tr>`;
                     });
 
-                    // Total row
+                    let totalDiffHtml = '';
+                    if (isCompare) {
+                        const totalDiff = totalCurrQty - totalPrevQty;
+                        let tBadgeClass = 'text-gray-400';
+                        let tDiffIcon = '';
+                        let tDiffText = '-';
+                        if (totalDiff > 0) { 
+                            tBadgeClass = 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 px-1.5 py-0.5 rounded-md text-xs'; 
+                            tDiffIcon = '↑'; 
+                            tDiffText = totalDiff;
+                        } else if (totalDiff < 0) { 
+                            tBadgeClass = 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400 px-1.5 py-0.5 rounded-md text-xs'; 
+                            tDiffIcon = '↓'; 
+                            tDiffText = Math.abs(totalDiff);
+                        }
+                        totalDiffHtml = `
+                            <td class="p-2 text-right text-gray-500 dark:text-gray-400">${totalPrevQty}</td>
+                            <td class="p-2 text-right font-semibold"><span class="${tBadgeClass}">${tDiffIcon} ${tDiffText}</span></td>
+                        `;
+                    }
+
                     rows += `
                         <tr class="bg-gray-100 dark:bg-gray-700 font-bold border-t-2 border-gray-300 dark:border-gray-600">
                             <td class="p-2" colspan="2">${sorted.length} unique items</td>
-                            <td class="p-2 text-right">${totalQty}</td>
+                            <td class="p-2 text-right">${totalCurrQty}</td>
+                            ${totalDiffHtml}
                         </tr>`;
+
+                    let extraHeaders = '';
+                    if (isCompare) {
+                        extraHeaders = `
+                            <th class="p-2 text-right text-gray-500 dark:text-gray-400 w-16">Prev</th>
+                            <th class="p-2 text-right text-gray-500 dark:text-gray-400 w-16">Diff</th>
+                        `;
+                    }
 
                     const section = `
                         <div class="border dark:border-gray-700 rounded-lg overflow-hidden">
                             <div class="${headerColors[cat.color]} text-white px-3 py-2 font-semibold text-sm flex justify-between items-center">
                                 <span>${cat.label}</span>
-                                <span class="text-xs font-normal opacity-80">${totalQty} unit</span>
+                                <span class="text-xs font-normal opacity-80">${totalCurrQty} unit</span>
                             </div>
                             <div class="overflow-x-auto max-h-72 overflow-y-auto">
                                 <table class="w-full text-sm text-left">
@@ -1796,19 +1974,22 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                                         <tr>
                                             <th class="p-2 text-gray-500 dark:text-gray-400 w-10">#</th>
                                             <th class="p-2 text-gray-500 dark:text-gray-400">Item Name</th>
-                                            <th class="p-2 text-right text-gray-500 dark:text-gray-400 w-16">Qty</th>
+                                            <th class="p-2 text-right text-gray-500 dark:text-gray-400 w-16">Curr</th>
+                                            ${extraHeaders}
                                         </tr>
                                     </thead>
-                                    <tbody class="dark:text-gray-300">${rows}</tbody>
+                                    <tbody class="dark:text-gray-300">
+                                        ${rows}
+                                    </tbody>
                                 </table>
                             </div>
-                        </div>`;
-
+                        </div>
+                    `;
                     container.innerHTML += section;
                 });
 
                 if (!hasAnyItems) {
-                    container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-4">No item data recorded.</p>';
+                    container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-4">No itemized sales data found for this month.</p>';
                 }
             },
 
@@ -1866,18 +2047,21 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                 const prevSameDayReport = prevReports.find(r => new Date(r.dateKey).getUTCDate() === lastCurrDay);
                 const prevSalesSameDay = prevSameDayReport ? prevSameDayReport.newUpToDateSales : 0;
 
-                const makeCard = (title, current, previous) => {
+                const makeCard = (title, current, previous, isCurrency = true) => {
                     const diff = current - previous;
                     const pct = previous > 0 ? (diff / previous) * 100 : 0;
                     const isUp = diff >= 0;
                     const color = isUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
                     const icon = isUp ? '↑' : '↓';
                     
+                    const formatVal = (val) => isCurrency ? this.formatCurrency(val, true) : `${val} unit`;
+                    const formatDiff = (val) => isCurrency ? this.formatCurrency(Math.abs(val)) : `${Math.abs(val)}`;
+
                     return `
                         <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow border dark:border-gray-700">
                             <div class="text-xs text-gray-500 dark:text-gray-400">${title}</div>
-                            <div class="font-bold text-gray-800 dark:text-gray-100">${this.formatCurrency(current, true)}</div>
-                            <div class="text-sm font-semibold ${color}">${icon} ${this.formatCurrency(Math.abs(diff))} (${Math.abs(pct).toFixed(1)}%)</div>
+                            <div class="font-bold text-gray-800 dark:text-gray-100">${formatVal(current)}</div>
+                            <div class="text-sm font-semibold ${color}">${icon} ${formatDiff(diff)} (${Math.abs(pct).toFixed(1)}%)</div>
                         </div>
                     `;
                 };
@@ -1886,6 +2070,31 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                 if (prevSalesSameDay > 0) {
                     html += makeCard(`Total vs Day ${lastCurrDay} ${this.monthNames[prevMonth-1]}`, currSales, prevSalesSameDay);
                 }
+                
+                // Sum up categories for current and previous month
+                let currCore = 0, currAcc = 0, currWarr = 0, currTrade = 0, currDemo = 0;
+                currReports.forEach(r => {
+                    currCore += (r.coreProductSales || 0);
+                    currAcc += (r.accessoriesSales || 0);
+                    currWarr += r.warrantyItems ? r.warrantyItems.split('\n').filter(line => line.trim() !== '').length : 0;
+                    currTrade += (r.tradeInSales || 0);
+                    currDemo += (r.demoSales || 0);
+                });
+
+                let prevCore = 0, prevAcc = 0, prevWarr = 0, prevTrade = 0, prevDemo = 0;
+                prevReports.forEach(r => {
+                    prevCore += (r.coreProductSales || 0);
+                    prevAcc += (r.accessoriesSales || 0);
+                    prevWarr += r.warrantyItems ? r.warrantyItems.split('\n').filter(line => line.trim() !== '').length : 0;
+                    prevTrade += (r.tradeInSales || 0);
+                    prevDemo += (r.demoSales || 0);
+                });
+
+                html += makeCard(`Core Product`, currCore, prevCore);
+                html += makeCard(`Accessories`, currAcc, prevAcc);
+                html += makeCard(`Warranty`, currWarr, prevWarr, false);
+                html += makeCard(`Trade In`, currTrade, prevTrade);
+                html += makeCard(`Demo`, currDemo, prevDemo);
                 
                 this.elements.momContent.innerHTML = html;
             },
@@ -1985,7 +2194,69 @@ Estimated Closing : RM ${this.formatCurrency(estimatedClosing)} (${estimatedClos
                     this.showToast("Failed to delete report.", false);
                 }
             },
-            // --- End New Features Methods ---
+            // --- New Features Methods ---
+            renderHeatmap(allReports, currentYear) {
+                if (!this.elements.heatmapGrid) return;
+                
+                const grid = this.elements.heatmapGrid;
+                const tooltip = this.elements.heatmapTooltip;
+                grid.innerHTML = '';
+                
+                // Group sales by date for the selected year
+                const salesByDate = {};
+                let maxSales = 0;
+                
+                allReports.forEach(r => {
+                    const rYear = new Date(r.dateKey).getFullYear();
+                    if (rYear === currentYear) {
+                        const dailySales = (r.coreProductSales || 0) + (r.accessoriesSales || 0) + (r.warrantySales || 0) + (r.tradeInSales || 0) + (r.demoSales || 0);
+                        salesByDate[r.dateKey] = dailySales;
+                        if (dailySales > maxSales) maxSales = dailySales;
+                    }
+                });
+                
+                // 364 days for simple rendering (52 weeks x 7 days = perfect rectangle)
+                const startDate = new Date(currentYear, 0, 1);
+                
+                for (let i = 0; i < 364; i++) {
+                    const date = new Date(startDate);
+                    date.setDate(startDate.getDate() + i);
+                    const dateStr = this.formatDate(date);
+                    
+                    const sales = salesByDate[dateStr] || 0;
+                    
+                    let level = 0;
+                    if (sales > 0) {
+                        const ratio = sales / maxSales;
+                        if (ratio > 0.75) level = 4;
+                        else if (ratio > 0.5) level = 3;
+                        else if (ratio > 0.25) level = 2;
+                        else level = 1;
+                    }
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'heatmap-cell';
+                    if (level > 0) cell.setAttribute('data-level', level);
+                    
+                    cell.addEventListener('mouseenter', (e) => {
+                        tooltip.innerHTML = `<strong>${dateStr}</strong><br/>${this.formatCurrency(sales, true)}`;
+                        tooltip.style.display = 'block';
+                        
+                        // Calculate position relative to container
+                        const containerRect = grid.parentElement.getBoundingClientRect();
+                        const cellRect = e.target.getBoundingClientRect();
+                        
+                        tooltip.style.left = `${cellRect.left - containerRect.left + (cellRect.width / 2)}px`;
+                        tooltip.style.top = `${cellRect.top - containerRect.top}px`;
+                    });
+                    
+                    cell.addEventListener('mouseleave', () => {
+                        tooltip.style.display = 'none';
+                    });
+                    
+                    grid.appendChild(cell);
+                }
+            },
 
             showToast(message, isSuccess = true) {
                 this.elements.toastMessage.textContent = message;
